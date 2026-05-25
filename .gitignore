@@ -4,3 +4,6 @@ vmake
 *.ll
 *.s
 test
+hello-world
+stack-manipulation
+strings
