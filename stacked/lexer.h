@@ -47,7 +47,7 @@ typedef struct {
 } Lexer;
 
 const cstr TokenType_to_cstr(TokenType self);
-void Token_display(Token self);
+void Token_display(const cstr path, Token self);
 
 Lexer Lexer_new(cstr filepath);
 void Lexer_delete(nullable Lexer* self);

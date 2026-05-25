@@ -2,7 +2,18 @@
 #include <mcu/handlers.h>
 #include <mcu/io.h>
 
-i32 compile(const cstr file_path) {
+#include "lexer.h"
+
+i32 compile(cstr file_path) {
+   Lexer lexer = Lexer_new(file_path);
+
+   Token token;
+   do {
+      token = Lexer_next(&lexer);
+      Token_display(lexer.file.path, token);
+   } while (token.type != TT_Eof);
+
+   Lexer_delete(&lexer);
    return 0;
 }
 
