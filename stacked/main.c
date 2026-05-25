@@ -2,9 +2,10 @@
 #include <mcu/handlers.h>
 #include <mcu/io.h>
 
+#include "flags.h"
 #include "lexer.h"
 #include "lir.h"
-#include "flags.h"
+#include "backend_llvm.h"
 
 void token_dump(Lexer* lexer) {
    Token token;
@@ -28,6 +29,8 @@ i32 compile(cstr file_path, CompileFlags flags) {
       return 0;
    }
 
+   LIR_to_llvm_ir(lir, flags.llvm_dump);
+
    Lexer_delete(&lexer);
    return 0;
 }
@@ -45,6 +48,7 @@ i32 main(i32 argc, cstr argv[]) {
       cstr_match(argv[i]) {
          ncstreq("--token-dump") flags.token_dump = true;
          cstreq("--lir-dump")    flags.lir_dump   = true;
+         cstreq("--llvm-dump")   flags.llvm_dump  = true;
          else {
             Vector_push(&files, &argv[i]);
          }
