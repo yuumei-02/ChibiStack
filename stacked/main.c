@@ -11,6 +11,7 @@ i32 compile(cstr file_path) {
    do {
       token = Lexer_next(&lexer);
       Token_display(lexer.file.path, token);
+      Token_free(token);
    } while (token.type != TT_Eof);
 
    Lexer_delete(&lexer);

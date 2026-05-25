@@ -5,15 +5,20 @@ typedef enum {
    TT_Eof,
 
    // Operators
-   TT_Plus,
+   TT_Add,
+   TT_Sub,
+   TT_Mul,
+   TT_Div,
 
    // Literals
+   TT_Identifier,
    TT_IntLiteral,
 
    // Keywords
    TT_Print,
 } TokenType;
 
+// @note: don't forget to update Token_free when adding new tokens
 typedef struct {
    usize x;
    usize y;
@@ -22,6 +27,7 @@ typedef struct {
 
    union {
       i64 int_literal;
+      String str_literal;
    };
 } Token;
 
@@ -48,6 +54,7 @@ typedef struct {
 
 const cstr TokenType_to_cstr(TokenType self);
 void Token_display(const cstr path, Token self);
+void Token_free(Token token);
 
 Lexer Lexer_new(cstr filepath);
 void Lexer_delete(nullable Lexer* self);
