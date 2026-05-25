@@ -12,6 +12,7 @@ typedef enum {
 
    // Literals
    TT_Identifier,
+   TT_StrLiteral,
    TT_IntLiteral,
 
    // Keywords
@@ -19,6 +20,7 @@ typedef enum {
    TT_Swap,
    TT_Dup,
    TT_Puti,
+   TT_Puts,
 } TokenType;
 
 // @note: don't forget to update Token_free when adding new tokens
@@ -38,6 +40,7 @@ typedef enum {
    LM_Trim,
    LM_Normal,
    LM_Integer,
+   LM_String,
 } LexerMode;
 
 typedef struct {

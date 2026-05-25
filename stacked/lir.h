@@ -1,6 +1,7 @@
 #pragma once
 
 typedef enum {
+   IT_PushStr,
    IT_Push,
    IT_Pop,
    IT_Swap,
@@ -11,7 +12,8 @@ typedef enum {
    IT_Mul,
    IT_Div,
    
-   IT_Puti
+   IT_Puti,
+   IT_Puts
 } InstrType;
 
 typedef struct {
@@ -27,7 +29,10 @@ typedef struct {
 } Instruction;
 
 /// A [Vector] of [Instruction]s
-typedef Vector LIR;
+typedef struct {
+   Vector Instructions;
+   Vector StrLiterals;
+} LIR;
 
 LIR LIR_from_lexer(Lexer* lexer);
 void LIR_delete(nullable LIR* self);

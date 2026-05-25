@@ -22,11 +22,13 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Mul:        return "Mul";
       case TT_Div:        return "Div";
       case TT_Identifier: return "Identifier";
+      case TT_StrLiteral: return "StrLiteral";
       case TT_IntLiteral: return "IntLiteral";
       case TT_Drop:       return "Drop";
       case TT_Swap:       return "Swap";
       case TT_Dup:        return "Dup";
       case TT_Puti:       return "Puti";
+      case TT_Puts:       return "Puts";
    }
 
    return "Unknown";
@@ -42,7 +44,8 @@ void Token_display(const cstr path, Token self) {
          println(" (%ld)", self.int_literal);
       } break;
 
-      case TT_Identifier: {
+      case TT_Identifier: [[fallthrough]];
+      case TT_StrLiteral: {
          println(" (%s)", self.str_literal.chars);
       } break;
 
@@ -66,6 +69,7 @@ void check_allocate_keywords() {
    HashMap_put(TokenType)(&G_keywords, "swap", TT_Swap);
    HashMap_put(TokenType)(&G_keywords, "dup",  TT_Dup);
    HashMap_put(TokenType)(&G_keywords, "puti", TT_Puti);
+   HashMap_put(TokenType)(&G_keywords, "puts", TT_Puts);
    
    G_keywords_allocated = true;
 }
@@ -165,6 +169,10 @@ Token Lexer_next(Lexer* self) {
                   token.type = TT_Sub;
                   return token;
                }
+
+               case '"': {
+                  self->mode = LM_String;
+               } break;
                
                case '\t': break;
                case '\n': break;
@@ -186,7 +194,7 @@ Token Lexer_next(Lexer* self) {
          case LM_Normal: {
             String_append(&self->accumulated, self->current);
 
-            if (self->peek == EOF || self->peek == ' '|| self->peek == '\n' || self->peek == '\t') {
+            if (self->peek == ' '|| self->peek == '\n' || self->peek == '\t' || self->peek == EOF) {
                TokenType* keyword = HashMap_get(TokenType)(&G_keywords, self->accumulated.chars);
                if (keyword == nullptr) {
                   token.type = TT_Identifier;
@@ -211,6 +219,18 @@ Token Lexer_next(Lexer* self) {
                   token.int_literal = -token.int_literal;
                else
                   token.length -= 1;
+               return token;
+            }
+         } continue;
+
+         case LM_String: {
+            String_append(&self->accumulated, self->current);
+
+            if (self->peek == '"' || self->peek == EOF) {
+               Lexer_advance(self);
+               token.type = TT_StrLiteral;
+               token.length = self->accumulated.length + 2;
+               token.str_literal = String_clone(self->accumulated);
                return token;
             }
          } continue;
