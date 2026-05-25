@@ -35,18 +35,27 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   store i64 %ld, i64* %%push_%zu\n\n", instr->arg1, push_count - 1);
          } continue;
 
-         case IT_Add: {
+         case IT_Add: [[fallthrough]];
+         case IT_Sub: [[fallthrough]];
+         case IT_Mul: [[fallthrough]];
+         case IT_Div: {
             fprintf(outf, "   ; Add\n");
             fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, push_count - 1);
             fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, push_count - 2);
-            fprintf(outf, "   %%result_%zu = add i64 %%val_%zu, %%val_%zu\n", result_count++, val_count - 1, val_count - 2);
+            fprintf(outf, "   %%result_%zu = ", result_count++);
+
+            switch (instr->type) {
+               case IT_Add: fprintf(outf, "add");  break;
+               case IT_Sub: fprintf(outf, "sub");  break;
+               case IT_Mul: fprintf(outf, "mul");  break;
+               case IT_Div: fprintf(outf, "sdiv"); break;
+               default: panic("unreachable");
+            }
+            
+            fprintf(outf, " i64 %%val_%zu, %%val_%zu\n", val_count - 1, val_count - 2);
             fprintf(outf, "   %%push_%zu = alloca i64\n", push_count++);
             fprintf(outf, "   store i64 %%result_%zu, i64* %%push_%zu\n\n", result_count - 1, push_count - 1);
          } continue;
-
-         case IT_Sub: mcu_todo("not yet implemented");
-         case IT_Mul: mcu_todo("not yet implemented");
-         case IT_Div: mcu_todo("not yet implemented");
 
          case IT_Print: {
             fprintf(outf, "   ; Print\n");
