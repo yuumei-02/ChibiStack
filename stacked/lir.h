@@ -1,10 +1,6 @@
 #pragma once
 
 typedef enum {
-   BIT32
-} BitLength;
-
-typedef enum {
    IT_Push,
    IT_Add,
    IT_Sub,
@@ -22,12 +18,7 @@ typedef struct {
    } origin;
 
    InstrType type;
-   union {
-      struct {
-         bool is_signed;
-         BitLength bits;
-      } bit_variant;
-   }
+   i64 arg1;
 } Instruction;
 
 /// A [Vector] of [Instruction]s

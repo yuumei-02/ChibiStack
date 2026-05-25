@@ -8,14 +8,15 @@
 i32 compile(cstr file_path) {
    Lexer lexer = Lexer_new(file_path);
 
-   Token token;
+   /* Token token; */
    /* do { */
    /*    token = Lexer_next(&lexer); */
    /*    Token_display(lexer.file.path, token); */
    /*    Token_free(token); */
    /* } while (token.type != TT_Eof); */
 
-   LIR_from_lexer(&lexer);
+   LIR lir = LIR_from_lexer(&lexer);
+   LIR_display(&lir);
 
    Lexer_delete(&lexer);
    return 0;
