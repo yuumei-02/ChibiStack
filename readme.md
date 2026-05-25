@@ -8,7 +8,7 @@ Mektova-C-Utils: https://github.com/yuumei-02/Mektova-C-Utils <br>
 Vlodinnye make: https://github.com/yuumei-02/Vlodinnye-make <br>
 
 # Roadmap
-[ ] statically typed
-[ ] functions
-[ ] syscalls
+[ ] statically typed <br>
+[ ] functions <br>
+[ ] syscalls <br>
 
