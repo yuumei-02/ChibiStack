@@ -20,6 +20,7 @@ void llvm_hdr(FILE* outf) {
       "define i32 @main() {\n");
 }
 
+// @todo: allocate the stack upfront to allow for more llvm optimizations
 void LIR_translate(LIR* self, FILE* outf) {
    u64 push_count   = 0;
    u64 val_count    = 0;

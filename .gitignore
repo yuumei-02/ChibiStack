@@ -3,3 +3,4 @@ build
 vmake
 *.ll
 *.s
+test
