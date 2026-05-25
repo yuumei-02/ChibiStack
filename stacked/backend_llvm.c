@@ -16,7 +16,7 @@ void llvm_hdr(LIR* lir, FILE* outf) {
       "declare i32 @printf(i8*, ...)\n"
       "\n"
       "@format_puti = private unnamed_addr constant [5 x i8] c\"%%ld\\0A\\00\"\n"
-      "@format_puts = private unnamed_addr constant [4 x i8] c\"%%s\\0A\\00\"\n\n");
+      "@format_puts = private unnamed_addr constant [3 x i8] c\"%%s\\00\"\n\n");
 
    foreach (lir->StrLiterals, i) {
       String* str = Vector_get(&lir->StrLiterals, i);
@@ -122,7 +122,7 @@ void LIR_translate(LIR* self, FILE* outf) {
          case IT_Puts: {
             fprintf(outf, "   ; Puts\n");
             if (!puts_format_defined) {
-               fprintf(outf, "   %%puts_fmt = getelementptr [4 x i8], [4 x i8]* @format_puts, i64 0, i64 0\n");
+               fprintf(outf, "   %%puts_fmt = getelementptr [3 x i8], [3 x i8]* @format_puts, i64 0, i64 0\n");
                puts_format_defined = true;
             }
             fprintf(outf, "   %%result_%lu = load i64, i64* %%push_%lu\n", result_count++, stack[--stack_depth]);

@@ -224,7 +224,20 @@ Token Lexer_next(Lexer* self) {
          } continue;
 
          case LM_String: {
-            String_append(&self->accumulated, self->current);
+            if (self->current == '\\') {
+               switch (self->peek) {
+                  case '"': String_append(&self->accumulated, '"'); break;
+                  case 'n': String_append(&self->accumulated, '\n'); break;
+                  case 't': String_append(&self->accumulated, '\t'); break;
+                  case '0': String_append(&self->accumulated, '\0'); break;
+                  default: {
+                     eprintln("[!] %s:%zu:%zu:%d Unknown escape sequence \"\\%c\"", self->file.path, self->y, self->x, 2, self->peek);
+                  } break;
+               }
+               Lexer_advance(self);
+            } else {
+               String_append(&self->accumulated, self->current);
+            }
 
             if (self->peek == '"' || self->peek == EOF) {
                Lexer_advance(self);
