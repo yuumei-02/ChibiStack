@@ -3,16 +3,19 @@
 #include <mcu/io.h>
 
 #include "lexer.h"
+#include "lir.h"
 
 i32 compile(cstr file_path) {
    Lexer lexer = Lexer_new(file_path);
 
    Token token;
-   do {
-      token = Lexer_next(&lexer);
-      Token_display(lexer.file.path, token);
-      Token_free(token);
-   } while (token.type != TT_Eof);
+   /* do { */
+   /*    token = Lexer_next(&lexer); */
+   /*    Token_display(lexer.file.path, token); */
+   /*    Token_free(token); */
+   /* } while (token.type != TT_Eof); */
+
+   LIR_from_lexer(&lexer);
 
    Lexer_delete(&lexer);
    return 0;
