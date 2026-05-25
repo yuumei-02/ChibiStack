@@ -15,6 +15,9 @@ typedef enum {
    TT_IntLiteral,
 
    // Keywords
+   TT_Drop,
+   TT_Swap,
+   TT_Dup,
    TT_Puti,
 } TokenType;
 

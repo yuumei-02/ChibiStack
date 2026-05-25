@@ -2,10 +2,15 @@
 
 typedef enum {
    IT_Push,
+   IT_Pop,
+   IT_Swap,
+   IT_Dup,
+   
    IT_Add,
    IT_Sub,
    IT_Mul,
    IT_Div,
+   
    IT_Puti
 } InstrType;
 

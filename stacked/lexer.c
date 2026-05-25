@@ -23,6 +23,9 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Div:        return "Div";
       case TT_Identifier: return "Identifier";
       case TT_IntLiteral: return "IntLiteral";
+      case TT_Drop:       return "Drop";
+      case TT_Swap:       return "Swap";
+      case TT_Dup:        return "Dup";
       case TT_Puti:       return "Puti";
    }
 
@@ -59,6 +62,9 @@ void check_allocate_keywords() {
    if (G_keywords_allocated) return;
 
    G_keywords = HashMap_new(TokenType)();
+   HashMap_put(TokenType)(&G_keywords, "drop", TT_Drop);
+   HashMap_put(TokenType)(&G_keywords, "swap", TT_Swap);
+   HashMap_put(TokenType)(&G_keywords, "dup",  TT_Dup);
    HashMap_put(TokenType)(&G_keywords, "puti", TT_Puti);
    
    G_keywords_allocated = true;

@@ -1,6 +1,7 @@
 #include <mcu/core.h>
 #include <mcu/containers.h>
 #include <mcu/io.h>
+#include <mcu/memory.h>
 
 #include <string.h>
 #include <errno.h>
@@ -23,7 +24,9 @@ void LIR_translate(LIR* self, FILE* outf) {
    u64 push_count   = 0;
    u64 val_count    = 0;
    u64 result_count = 0;
+   u64 stack_depth  = 0;
    bool puti_format_defined = false;
+   u64 stack[MiB] = {0};
 
    foreach ((*self), i) {
       Instruction* instr = Vector_get(self, i);
@@ -31,17 +34,40 @@ void LIR_translate(LIR* self, FILE* outf) {
       switch (instr->type) {
          case IT_Push: {
             fprintf(outf, "   ; Push\n");
-            fprintf(outf, "   %%push_%zu = alloca i64\n", push_count++);
-            fprintf(outf, "   store i64 %ld, i64* %%push_%zu\n\n", instr->arg1, push_count - 1);
+            fprintf(outf, "   %%push_%zu = alloca i64\n", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %ld, i64* %%push_%zu\n\n", instr->arg1, stack[stack_depth - 1]);
          } continue;
 
-         case IT_Add: [[fallthrough]];
-         case IT_Sub: [[fallthrough]];
-         case IT_Mul: [[fallthrough]];
+         case IT_Pop: {
+            fprintf(outf, "   ; Pop\n");
+            stack_depth--;
+         } continue;
+
+         case IT_Swap: {
+            fprintf(outf, "   ; Swap\n");
+            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, stack[stack_depth - 1]);
+            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, stack[stack_depth - 2]);
+            fprintf(outf, "   store i64 %%val_%zu, i64* %%push_%zu\n", val_count - 1, stack[stack_depth - 1]);
+            fprintf(outf, "   store i64 %%val_%zu, i64* %%push_%zu\n", val_count - 2, stack[stack_depth - 2]);
+         } continue;
+
+         case IT_Dup: {
+            fprintf(outf, "   ; Dup\n");
+            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n\n", val_count++, stack[stack_depth - 1]);
+            fprintf(outf, "   %%push_%zu = alloca i64\n", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %%val_%zu, i64* %%push_%zu\n\n", val_count - 1, stack[stack_depth - 1]);
+         } continue;
+
+         case IT_Add: fprintf(outf, "   ; Add\n"); goto arithmatic;
+         case IT_Sub: fprintf(outf, "   ; Sub\n"); goto arithmatic;
+         case IT_Mul: fprintf(outf, "   ; Mul\n"); goto arithmatic;
          case IT_Div: {
-            fprintf(outf, "   ; Add\n");
-            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, push_count - 1);
-            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, push_count - 2);
+            fprintf(outf, "   ; Div\n");
+         arithmatic:
+            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, stack[--stack_depth]);
+            fprintf(outf, "   %%val_%zu = load i64, i64* %%push_%zu\n", val_count++, stack[--stack_depth]);
             fprintf(outf, "   %%result_%zu = ", result_count++);
 
             switch (instr->type) {
@@ -53,8 +79,9 @@ void LIR_translate(LIR* self, FILE* outf) {
             }
             
             fprintf(outf, " i64 %%val_%zu, %%val_%zu\n", val_count - 1, val_count - 2);
-            fprintf(outf, "   %%push_%zu = alloca i64\n", push_count++);
-            fprintf(outf, "   store i64 %%result_%zu, i64* %%push_%zu\n\n", result_count - 1, push_count - 1);
+            fprintf(outf, "   %%push_%zu = alloca i64\n", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %%result_%zu, i64* %%push_%zu\n\n", result_count - 1, stack[stack_depth - 1]);
          } continue;
 
          case IT_Puti: {
@@ -63,7 +90,7 @@ void LIR_translate(LIR* self, FILE* outf) {
                fprintf(outf, "   %%puti_fmt = getelementptr [5 x i8], [5 x i8]* @format, i64 0, i64 0\n");
                puti_format_defined = true;
             }
-            fprintf(outf, "   %%result_%zu = load i64, i64* %%push_%zu\n", result_count++, push_count - 1);
+            fprintf(outf, "   %%result_%zu = load i64, i64* %%push_%zu\n", result_count++, stack[--stack_depth]);
             fprintf(outf, "   call i32 (i8*, ...) @printf(i8* %%puti_fmt, i64 %%result_%zu)\n\n", result_count - 1);
          } continue;
       }
