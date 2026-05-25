@@ -12,7 +12,7 @@ const cstr InstrType_to_cstr(InstrType self) {
       case IT_Sub:   return "Sub";
       case IT_Mul:   return "Mul";
       case IT_Div:   return "Div";
-      case IT_Print: return "Print";
+      case IT_Puti:  return "Puti";
    }
 
    return "Unknown";
@@ -42,11 +42,11 @@ LIR LIR_from_lexer(Lexer* lexer) {
             Vector_push(&self, &instr);
          } continue;
 
-         case TT_Add: instr.type = IT_Add; Vector_push(&self, &instr); continue;
-         case TT_Sub: instr.type = IT_Sub; Vector_push(&self, &instr); continue;
-         case TT_Mul: instr.type = IT_Mul; Vector_push(&self, &instr); continue;
-         case TT_Div: instr.type = IT_Div; Vector_push(&self, &instr); continue;
-         case TT_Print: instr.type = IT_Print; Vector_push(&self, &instr); continue;
+         case TT_Add:  instr.type = IT_Add;  Vector_push(&self, &instr); continue;
+         case TT_Sub:  instr.type = IT_Sub;  Vector_push(&self, &instr); continue;
+         case TT_Mul:  instr.type = IT_Mul;  Vector_push(&self, &instr); continue;
+         case TT_Div:  instr.type = IT_Div;  Vector_push(&self, &instr); continue;
+         case TT_Puti: instr.type = IT_Puti; Vector_push(&self, &instr); continue;
 
          case TT_Identifier: mcu_todo("not yet implemented");
 

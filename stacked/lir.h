@@ -6,7 +6,7 @@ typedef enum {
    IT_Sub,
    IT_Mul,
    IT_Div,
-   IT_Print
+   IT_Puti
 } InstrType;
 
 typedef struct {

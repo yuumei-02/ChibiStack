@@ -15,7 +15,7 @@ typedef enum {
    TT_IntLiteral,
 
    // Keywords
-   TT_Print,
+   TT_Puti,
 } TokenType;
 
 // @note: don't forget to update Token_free when adding new tokens

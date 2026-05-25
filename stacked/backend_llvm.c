@@ -23,7 +23,7 @@ void LIR_translate(LIR* self, FILE* outf) {
    u64 push_count   = 0;
    u64 val_count    = 0;
    u64 result_count = 0;
-   bool format_defined = false;
+   bool puti_format_defined = false;
 
    foreach ((*self), i) {
       Instruction* instr = Vector_get(self, i);
@@ -57,14 +57,14 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   store i64 %%result_%zu, i64* %%push_%zu\n\n", result_count - 1, push_count - 1);
          } continue;
 
-         case IT_Print: {
-            fprintf(outf, "   ; Print\n");
-            if (!format_defined) {
-               fprintf(outf, "   %%fmt = getelementptr [5 x i8], [5 x i8]* @format, i64 0, i64 0\n");
-               format_defined = true;
+         case IT_Puti: {
+            fprintf(outf, "   ; Puti\n");
+            if (!puti_format_defined) {
+               fprintf(outf, "   %%puti_fmt = getelementptr [5 x i8], [5 x i8]* @format, i64 0, i64 0\n");
+               puti_format_defined = true;
             }
             fprintf(outf, "   %%result_%zu = load i64, i64* %%push_%zu\n", result_count++, push_count - 1);
-            fprintf(outf, "   call i32 (i8*, ...) @printf(i8* %%fmt, i64 %%result_%zu)\n\n", result_count - 1);
+            fprintf(outf, "   call i32 (i8*, ...) @printf(i8* %%puti_fmt, i64 %%result_%zu)\n\n", result_count - 1);
          } continue;
       }
 
