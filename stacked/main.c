@@ -29,7 +29,7 @@ i32 compile(cstr file_path, CompileFlags flags) {
       return 0;
    }
 
-   LIR_to_llvm_ir(lir, flags.llvm_dump);
+   LIR_to_llvm_ir(lir, flags.llvm_dump, file_path);
 
    Lexer_delete(&lexer);
    return 0;
