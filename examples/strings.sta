@@ -1,0 +1,7 @@
+// String literals push their length and then their memory address onto the stack
+"The string literal `" puts drop
+"Zhyivannye miratte" puts
+"`" puts drop
+" is " puts drop
+puti "bytes long\n" puts drop
+

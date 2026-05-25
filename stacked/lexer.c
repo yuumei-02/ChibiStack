@@ -157,7 +157,15 @@ Token Lexer_next(Lexer* self) {
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
                case '*': token.type = TT_Mul; return token;
-               case '/': token.type = TT_Div; return token;
+               case '/': {
+                  if (self->peek == '/') {
+                     self->mode = LM_Comment;
+                     break;
+                  }
+                  
+                  token.type = TT_Div;
+                  return token;
+               }
 
                case '-': {
                   if (self->peek >= '0' && self->peek <= '9') {
@@ -226,7 +234,6 @@ Token Lexer_next(Lexer* self) {
          case LM_String: {
             if (self->current == '\\') {
                switch (self->peek) {
-                  case '"': String_append(&self->accumulated, '"'); break;
                   case 'n': String_append(&self->accumulated, '\n'); break;
                   case 't': String_append(&self->accumulated, '\t'); break;
                   case '0': String_append(&self->accumulated, '\0'); break;
@@ -245,6 +252,12 @@ Token Lexer_next(Lexer* self) {
                token.length = self->accumulated.length + 2;
                token.str_literal = String_clone(self->accumulated);
                return token;
+            }
+         } continue;
+
+         case LM_Comment: {
+            if (self->peek == '\n' || self->peek == EOF) {
+               self->mode = LM_Trim;
             }
          } continue;
       }

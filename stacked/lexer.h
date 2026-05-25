@@ -41,6 +41,7 @@ typedef enum {
    LM_Normal,
    LM_Integer,
    LM_String,
+   LM_Comment,
 } LexerMode;
 
 typedef struct {

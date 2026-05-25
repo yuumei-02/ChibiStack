@@ -1,0 +1,4 @@
+4 dup + puti
+5 4 swap puti drop
+10 5 2 drop * puti
+
