@@ -17,7 +17,8 @@ const cstr InstrType_to_cstr(InstrType self) {
       case IT_Sub:     return "Sub";
       case IT_Mul:     return "Mul";
       case IT_Div:     return "Div";
-                       
+
+      case IT_Syscall: return "Syscall";
       case IT_Puti:    return "Puti";
       case IT_Puts:    return "Puts";
    }
@@ -71,6 +72,18 @@ LIR LIR_from_lexer(Lexer* lexer) {
          case TT_Sub: instr.type = IT_Sub; Vector_push(&self.Instructions, &instr); continue;
          case TT_Mul: instr.type = IT_Mul; Vector_push(&self.Instructions, &instr); continue;
          case TT_Div: instr.type = IT_Div; Vector_push(&self.Instructions, &instr); continue;
+
+         case TT_Syscall1: instr.arg1 = 1; goto syscall;
+         case TT_Syscall2: instr.arg1 = 2; goto syscall;
+         case TT_Syscall3: instr.arg1 = 3; goto syscall;
+         case TT_Syscall4: instr.arg1 = 4; goto syscall;
+         case TT_Syscall5: instr.arg1 = 5; goto syscall;
+         case TT_Syscall6: {
+            instr.arg1 = 6;
+         syscall:
+            instr.type = IT_Syscall;
+            Vector_push(&self.Instructions, &instr);
+         } continue;
 
          case TT_Puti: instr.type = IT_Puti; Vector_push(&self.Instructions, &instr); continue;
          case TT_Puts: instr.type = IT_Puts; Vector_push(&self.Instructions, &instr); continue;

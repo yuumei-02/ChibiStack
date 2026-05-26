@@ -19,6 +19,12 @@ typedef enum {
    TT_Drop,
    TT_Swap,
    TT_Dup,
+   TT_Syscall1,
+   TT_Syscall2,
+   TT_Syscall3,
+   TT_Syscall4,
+   TT_Syscall5,
+   TT_Syscall6,
    TT_Puti,
    TT_Puts,
 } TokenType;

@@ -11,7 +11,8 @@ typedef enum {
    IT_Sub,
    IT_Mul,
    IT_Div,
-   
+
+   IT_Syscall,
    IT_Puti,
    IT_Puts
 } InstrType;
