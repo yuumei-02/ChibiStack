@@ -59,8 +59,6 @@ void LIR_translate(LIR* self, FILE* outf) {
    u64 val_count    = 0;
    u64 result_count = 0;
    u64 tmp_count    = 0;
-   u64 label_count  = 0;
-   u64 end_count    = 0;
    
    u64 stack_depth  = 0;
    u64 stack[MiB] = {0};
@@ -109,18 +107,6 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
             fprintf(outf, "   store i64 %%val_%lu, i64* %%push_%lu\n\n", val_count - 1, stack[stack_depth - 1]);
-         } continue;
-
-         case IT_Label: {
-            switch ((LabelType) instr->args[0]) {
-               case LT_If: {
-                  fprintf(outf, "   ; If label\n");
-                  fprintf(outf, "if_label_%ld:\n", label_count++);
-                  fprintf(outf, "   ");
-               } continue;
-            }
-            
-            panic("unreachable");
          } continue;
 
          case IT_Not: {
