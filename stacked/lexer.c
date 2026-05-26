@@ -21,6 +21,13 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Sub:        return "Sub";
       case TT_Mul:        return "Mul";
       case TT_Div:        return "Div";
+      case TT_Equals:     return "Equals";
+      case TT_NotEquals:  return "NotEquals";
+      case TT_Less:       return "Less";
+      case TT_More:       return "More";
+      case TT_LessEqu:    return "LessEqu";
+      case TT_MoreEqu:    return "MoreEqu";
+      case TT_Not:        return "Not";
       case TT_Identifier: return "Identifier";
       case TT_StrLiteral: return "StrLiteral";
       case TT_IntLiteral: return "IntLiteral";
@@ -167,8 +174,9 @@ Token Lexer_next(Lexer* self) {
             token.y = self->y;
 
             switch (self->current) {
-               case '+': token.type = TT_Add; return token;
-               case '*': token.type = TT_Mul; return token;
+               case '=': token.type = TT_Equals; return token;
+               case '+': token.type = TT_Add;    return token;
+               case '*': token.type = TT_Mul;    return token;
                case '/': {
                   if (self->peek == '/') {
                      self->mode = LM_Comment;
@@ -188,6 +196,51 @@ Token Lexer_next(Lexer* self) {
 
                   token.type = TT_Sub;
                   return token;
+               }
+
+               case '!': {
+                  switch (self->peek) {
+                     case '=': {
+                        Lexer_advance(self);
+                        token.type = TT_NotEquals;
+                        token.length = 2;
+                        return token;
+                     }
+                     default: {
+                        token.type = TT_Not;
+                        return token;
+                     }
+                  }
+               }
+
+               case '<': {
+                  switch (self->peek) {
+                     case '=': {
+                        Lexer_advance(self);
+                        token.type = TT_LessEqu;
+                        token.length = 2;
+                        return token;
+                     }
+                     default: {
+                        token.type = TT_Less;
+                        return token;
+                     }
+                  }
+               }
+
+               case '>': {
+                  switch (self->peek) {
+                     case '=': {
+                        Lexer_advance(self);
+                        token.type = TT_MoreEqu;
+                        token.length = 2;
+                        return token;
+                     }
+                     default: {
+                        token.type = TT_More;
+                        return token;
+                     }
+                  }
                }
 
                case '"': {

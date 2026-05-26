@@ -108,9 +108,25 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   store i64 %%val_%lu, i64* %%push_%lu\n\n", val_count - 1, stack[stack_depth - 1]);
          } continue;
 
-         case IT_Add: fprintf(outf, "   ; Add\n"); goto arithmatic;
-         case IT_Sub: fprintf(outf, "   ; Sub\n"); goto arithmatic;
-         case IT_Mul: fprintf(outf, "   ; Mul\n"); goto arithmatic;
+         case IT_Not: {
+            fprintf(outf, "   ; Not\n");
+            fprintf(outf, "   %%val_%lu = load i64, i64* %%push_%lu\n", val_count++, stack[--stack_depth]);
+            fprintf(outf, "   %%result_%lu = icmp eq i64 %%val_%lu, 0\n", result_count++, val_count - 1);
+            fprintf(outf, "   %%tmp_%lu = zext i1 %%result_%lu to i64\n", tmp_count++, result_count - 1);
+            fprintf(outf, "   %%push_%lu = alloca i64", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
+         } continue;
+
+         case IT_Equ:     fprintf(outf, "   ; Equ\n");     goto arithmatic;
+         case IT_NotEqu:  fprintf(outf, "   ; NotEqu\n");  goto arithmatic;
+         case IT_Less:    fprintf(outf, "   ; Less\n");    goto arithmatic;
+         case IT_More:    fprintf(outf, "   ; More\n");    goto arithmatic;
+         case IT_LessEqu: fprintf(outf, "   ; LessEqu\n"); goto arithmatic;
+         case IT_MoreEqu: fprintf(outf, "   ; MoreEqu\n"); goto arithmatic;
+         case IT_Add:     fprintf(outf, "   ; Add\n");     goto arithmatic;
+         case IT_Sub:     fprintf(outf, "   ; Sub\n");     goto arithmatic;
+         case IT_Mul:     fprintf(outf, "   ; Mul\n");     goto arithmatic;
          case IT_Div: {
             fprintf(outf, "   ; Div\n");
          arithmatic:
@@ -119,17 +135,39 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%result_%lu = ", result_count++);
 
             switch (instr->type) {
-               case IT_Add: fprintf(outf, "add");  break;
-               case IT_Sub: fprintf(outf, "sub");  break;
-               case IT_Mul: fprintf(outf, "mul");  break;
-               case IT_Div: fprintf(outf, "sdiv"); break;
+               case IT_Add:     fprintf(outf, "add");      break;
+               case IT_Sub:     fprintf(outf, "sub");      break;
+               case IT_Mul:     fprintf(outf, "mul");      break;
+               case IT_Div:     fprintf(outf, "sdiv");     break;
+               case IT_Equ:     fprintf(outf, "icmp eq");  break;
+               case IT_NotEqu:  fprintf(outf, "icmp ne");  break;
+               case IT_Less:    fprintf(outf, "icmp slt"); break;
+               case IT_More:    fprintf(outf, "icmp sgt"); break;
+               case IT_LessEqu: fprintf(outf, "icmp sle"); break;
+               case IT_MoreEqu: fprintf(outf, "icmp sge"); break;
+               
                default: panic("unreachable");
             }
             
             fprintf(outf, " i64 %%val_%lu, %%val_%lu\n", val_count - 1, val_count - 2);
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
-            fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
+
+            switch (instr->type) {
+               case IT_Equ:     [[fallthrough]];
+               case IT_NotEqu:  [[fallthrough]];
+               case IT_Less:    [[fallthrough]];
+               case IT_More:    [[fallthrough]];
+               case IT_LessEqu: [[fallthrough]];
+               case IT_MoreEqu: {
+                  fprintf(outf, "   %%tmp_%lu = zext i1 %%result_%lu to i64\n", tmp_count++, result_count - 1);
+                  fprintf(outf, "   store i64 %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
+               } break;
+               
+               default: {
+                  fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
+               }
+            }
          } continue;
 
          case IT_Syscall: {

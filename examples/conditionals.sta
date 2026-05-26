@@ -1,0 +1,9 @@
+"Some conditions\n" puts drop
+4 4 = puti
+4 4 != puti
+4 4 > puti
+4 4 < puti
+4 4 >= puti
+4 4 <= puti
+4 4 = ! puti
+"Conditionals\n" puts drop

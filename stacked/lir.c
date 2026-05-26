@@ -18,6 +18,14 @@ const cstr InstrType_to_cstr(InstrType self) {
       case IT_Mul:     return "Mul";
       case IT_Div:     return "Div";
 
+      case IT_Equ:     return "Equ";
+      case IT_NotEqu:  return "NotEqu";
+      case IT_Less:    return "Less";
+      case IT_More:    return "More";
+      case IT_LessEqu: return "LessEqu";
+      case IT_MoreEqu: return "MoreEqu";
+      case IT_Not:     return "Not";
+
       case IT_Syscall: return "Syscall";
       case IT_Puti:    return "Puti";
       case IT_Puts:    return "Puts";
@@ -72,6 +80,14 @@ LIR LIR_from_lexer(Lexer* lexer) {
          case TT_Sub: instr.type = IT_Sub; Vector_push(&self.Instructions, &instr); continue;
          case TT_Mul: instr.type = IT_Mul; Vector_push(&self.Instructions, &instr); continue;
          case TT_Div: instr.type = IT_Div; Vector_push(&self.Instructions, &instr); continue;
+
+         case TT_Equals:    instr.type = IT_Equ;     Vector_push(&self.Instructions, &instr); continue;
+         case TT_NotEquals: instr.type = IT_NotEqu;  Vector_push(&self.Instructions, &instr); continue;
+         case TT_Less:      instr.type = IT_Less;    Vector_push(&self.Instructions, &instr); continue;
+         case TT_More:      instr.type = IT_More;    Vector_push(&self.Instructions, &instr); continue;
+         case TT_LessEqu:   instr.type = IT_LessEqu; Vector_push(&self.Instructions, &instr); continue;
+         case TT_MoreEqu:   instr.type = IT_MoreEqu; Vector_push(&self.Instructions, &instr); continue;
+         case TT_Not:       instr.type = IT_Not;     Vector_push(&self.Instructions, &instr); continue;
 
          case TT_Syscall1: instr.arg1 = 1; goto syscall;
          case TT_Syscall2: instr.arg1 = 2; goto syscall;

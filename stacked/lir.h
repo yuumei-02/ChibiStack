@@ -7,10 +7,13 @@ typedef enum {
    IT_Swap,
    IT_Dup,
    
-   IT_Add,
-   IT_Sub,
-   IT_Mul,
-   IT_Div,
+   IT_Add, IT_Sub,
+   IT_Mul, IT_Div,
+
+   IT_Equ,     IT_NotEqu,
+   IT_Less,    IT_More,
+   IT_LessEqu, IT_MoreEqu,
+   IT_Not,
 
    IT_Syscall,
    IT_Puti,
