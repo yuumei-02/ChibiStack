@@ -1,2 +1,1 @@
-"zhyivannye mirrate\n" swap puti puts
-
+"Zhyivannye from syscall4!\n" 1 1 syscall4

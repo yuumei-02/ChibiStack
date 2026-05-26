@@ -11,6 +11,29 @@
 #include "lir.h"
 #include "backend_llvm.h"
 
+typedef enum {
+   SR_Rax,
+   SR_Rdi,
+   SR_Rsi,
+   SR_Rdx,
+   SR_R10,
+   SR_R8,
+   SR_R9
+} SyscallReg;
+
+const cstr SyscallReg_to_cstr(SyscallReg self) {
+   switch (self) {
+      case SR_Rax: return "rax";
+      case SR_Rdi: return "rdi";
+      case SR_Rsi: return "rsi";
+      case SR_Rdx: return "rdx";
+      case SR_R10: return "r10";
+      case SR_R8:  return "r8";
+      case SR_R9:  return "r9";
+   }
+   return "Unknown";
+}
+
 void llvm_hdr(LIR* lir, FILE* outf) {
    fprintf(outf,
       "declare i32 @printf(i8*, ...)\n"
@@ -107,6 +130,31 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
             fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
+         } continue;
+
+         case IT_Syscall: {
+            fprintf(outf, "   ; Syscall\n");
+            for (i64 i = 0; i < instr->arg1; ++i) {
+               fprintf(outf, "   %%val_%lu = load i64, i64* %%push_%lu\n", val_count++, stack[--stack_depth]);
+            }
+
+            fprintf(outf, "   %%result_%lu = call i64 asm sideeffect \"syscall\", \"={rax},", result_count++);
+            SyscallReg reg = SR_Rax;
+            for (i64 i = 0; i < instr->arg1; ++i) {
+               fprintf(outf, "{%s}", SyscallReg_to_cstr(reg++));
+               if (i + 1 < instr->arg1) {
+                  fprintf(outf, ",");
+               }
+            }
+
+            fprintf(outf, "\" (");
+            for (i64 i = 0; i < instr->arg1; ++i) {
+               fprintf(outf, "i64 %%val_%lu", (val_count - instr->arg1) + i);
+               if (i + 1 < instr->arg1) {
+                  fprintf(outf, ", ");
+               }
+            }
+            fprintf(outf, ")\n\n");
          } continue;
 
          case IT_Puti: {
