@@ -154,7 +154,10 @@ void LIR_translate(LIR* self, FILE* outf) {
                   fprintf(outf, ", ");
                }
             }
-            fprintf(outf, ")\n\n");
+            fprintf(outf, ")\n");
+            fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
          } continue;
 
          case IT_Puti: {
