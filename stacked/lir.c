@@ -12,12 +12,12 @@ const cstr InstrType_to_cstr(InstrType self) {
       case IT_Pop:     return "Pop";
       case IT_Swap:    return "Swap";
       case IT_Dup:     return "Dup";
-                       
+      case IT_Label:   return "Label";
+      case IT_CJmp:    return "CJmp";
       case IT_Add:     return "Add";
       case IT_Sub:     return "Sub";
       case IT_Mul:     return "Mul";
       case IT_Div:     return "Div";
-
       case IT_Equ:     return "Equ";
       case IT_NotEqu:  return "NotEqu";
       case IT_Less:    return "Less";
@@ -25,13 +25,67 @@ const cstr InstrType_to_cstr(InstrType self) {
       case IT_LessEqu: return "LessEqu";
       case IT_MoreEqu: return "MoreEqu";
       case IT_Not:     return "Not";
-
       case IT_Syscall: return "Syscall";
       case IT_Puti:    return "Puti";
       case IT_Puts:    return "Puts";
    }
 
    return "Unknown";
+}
+
+const cstr LabelType_to_cstr(LabelType self) {
+   switch (self) {
+      case LT_If:   return "if";
+      case LT_End:  return "end";
+   }
+   return "Unknown";
+}
+
+void LIR_path_labels(nullable LIR* self) {
+   if (self == nullptr) return;
+
+   Vector label_stack = Vector_new(sizeof(usize));
+   
+   foreach (self->Instructions, i) {
+      Instruction* instr = Vector_get(&self->Instructions, i);
+
+      switch (instr->type) {
+         case IT_CJmp: [[fallthrough]];
+         case IT_Label: {
+            Vector_push(&label_stack, &i);
+         } break;
+
+         default: break;
+      }
+   }
+
+   usize end_ip = 0;
+
+   for (i64 i = label_stack.length - 1; i >= 0; --i) {
+      usize ip = *(usize*) Vector_get(&label_stack, (usize) i);
+      Instruction* instr = Vector_get(&self->Instructions, ip);
+
+      switch (instr->type) {
+         case IT_CJmp: {
+            instr->args[0] = end_ip;
+         } continue;
+         
+         case IT_Label: {
+            switch ((LabelType) instr->args[0]) {
+               case LT_If: continue;
+               case LT_End: {
+                  end_ip = ip;
+               } continue;
+            }
+         
+            panic("unreachable");
+         }
+         
+         default: panic("unreachable");
+      }
+   }
+
+   Vector_free(&label_stack);
 }
 
 LIR LIR_from_lexer(Lexer* lexer) {
@@ -57,17 +111,17 @@ LIR LIR_from_lexer(Lexer* lexer) {
       switch (token.type) { 
          case TT_IntLiteral: {
             instr.type = IT_Push;
-            instr.arg1 = token.int_literal;
+            instr.args[0] = token.int_literal;
             Vector_push(&self.Instructions, &instr);
          } continue;
 
          case TT_StrLiteral: {
             instr.type = IT_Push;
-            instr.arg1 = (i64) token.length;
+            instr.args[0] = (i64) token.length;
             Vector_push(&self.Instructions, &instr);
 
             instr.type = IT_PushStr;
-            instr.arg1 = self.StrLiterals.length;
+            instr.args[0] = self.StrLiterals.length;
             Vector_push(&self.Instructions, &instr);
             Vector_push(&self.StrLiterals, &token.str_literal);
          } continue;
@@ -75,6 +129,19 @@ LIR LIR_from_lexer(Lexer* lexer) {
          case TT_Drop: instr.type = IT_Pop;  Vector_push(&self.Instructions, &instr); continue;
          case TT_Swap: instr.type = IT_Swap; Vector_push(&self.Instructions, &instr); continue;
          case TT_Dup:  instr.type = IT_Dup;  Vector_push(&self.Instructions, &instr); continue;
+
+         case TT_If:   instr.args[0] = LT_If; goto labels;
+         case TT_End: {
+            instr.args[0] = LT_End;
+         labels:
+            instr.type = IT_Label;
+            Vector_push(&self.Instructions, &instr);
+         } continue;
+
+         case TT_Do: {
+            instr.type = IT_CJmp;
+            Vector_push(&self.Instructions, &instr);
+         } continue;
 
          case TT_Add: instr.type = IT_Add; Vector_push(&self.Instructions, &instr); continue;
          case TT_Sub: instr.type = IT_Sub; Vector_push(&self.Instructions, &instr); continue;
@@ -89,13 +156,13 @@ LIR LIR_from_lexer(Lexer* lexer) {
          case TT_MoreEqu:   instr.type = IT_MoreEqu; Vector_push(&self.Instructions, &instr); continue;
          case TT_Not:       instr.type = IT_Not;     Vector_push(&self.Instructions, &instr); continue;
 
-         case TT_Syscall1: instr.arg1 = 1; goto syscall;
-         case TT_Syscall2: instr.arg1 = 2; goto syscall;
-         case TT_Syscall3: instr.arg1 = 3; goto syscall;
-         case TT_Syscall4: instr.arg1 = 4; goto syscall;
-         case TT_Syscall5: instr.arg1 = 5; goto syscall;
+         case TT_Syscall1: instr.args[0] = 1; goto syscall;
+         case TT_Syscall2: instr.args[0] = 2; goto syscall;
+         case TT_Syscall3: instr.args[0] = 3; goto syscall;
+         case TT_Syscall4: instr.args[0] = 4; goto syscall;
+         case TT_Syscall5: instr.args[0] = 5; goto syscall;
          case TT_Syscall6: {
-            instr.arg1 = 6;
+            instr.args[0] = 6;
          syscall:
             instr.type = IT_Syscall;
             Vector_push(&self.Instructions, &instr);
@@ -121,7 +188,7 @@ void LIR_delete(nullable LIR* self) {
 
    foreach (self->StrLiterals, i) {
       String* str = Vector_get(&self->StrLiterals, i);
-      String_free(str);      
+      String_free(str);
    }
    
    Vector_free(&self->StrLiterals);
@@ -139,7 +206,15 @@ void LIR_display(LIR* self) {
 
       switch (instr->type) {
          case IT_Push: {
-            println(" (%ld)", instr->arg1);
+            println(" (%ld)", instr->args[0]);
+         } break;
+
+         case IT_Label: {
+            println(" (%s)", LabelType_to_cstr(instr->args[0]));
+         } break;
+
+         case IT_CJmp: {
+            println(" (%ld)", instr->args[0]);
          } break;
 
          default: {

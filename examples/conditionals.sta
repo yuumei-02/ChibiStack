@@ -6,4 +6,10 @@
 4 4 >= puti
 4 4 <= puti
 4 4 = ! puti
-"Conditionals\n" puts drop
+
+"If statments\n" puts drop
+if 69 420 < do
+   "69 is indeed less than 420\n" puts
+end
+puti
+

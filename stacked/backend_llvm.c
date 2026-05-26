@@ -49,7 +49,8 @@ void llvm_hdr(LIR* lir, FILE* outf) {
    }
       
    fprintf(outf,
-      "define i32 @main() {\n");
+      "define i32 @main() {\n"
+      "entry:\n");
 }
 
 // @todo: allocate the stack upfront to allow for more llvm optimizations
@@ -58,6 +59,8 @@ void LIR_translate(LIR* self, FILE* outf) {
    u64 val_count    = 0;
    u64 result_count = 0;
    u64 tmp_count    = 0;
+   u64 label_count  = 0;
+   u64 end_count    = 0;
    
    u64 stack_depth  = 0;
    u64 stack[MiB] = {0};
@@ -74,9 +77,9 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
 
-            String* str_lit = Vector_get(&self->StrLiterals, (usize) instr->arg1);
+            String* str_lit = Vector_get(&self->StrLiterals, (usize) instr->args[0]);
             fprintf(outf, "   %%tmp_%lu = getelementptr [%zu x i8], ptr @strlit_%ld, i32 0, i32 0\n",
-               tmp_count++, str_lit->length + 1, instr->arg1);
+               tmp_count++, str_lit->length + 1, instr->args[0]);
             fprintf(outf, "   store ptr %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
          } continue;
       
@@ -84,7 +87,7 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   ; Push\n");
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
-            fprintf(outf, "   store i64 %ld, i64* %%push_%lu\n\n", instr->arg1, stack[stack_depth - 1]);
+            fprintf(outf, "   store i64 %ld, i64* %%push_%lu\n\n", instr->args[0], stack[stack_depth - 1]);
          } continue;
 
          case IT_Pop: {
@@ -106,6 +109,18 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
             fprintf(outf, "   store i64 %%val_%lu, i64* %%push_%lu\n\n", val_count - 1, stack[stack_depth - 1]);
+         } continue;
+
+         case IT_Label: {
+            switch ((LabelType) instr->args[0]) {
+               case LT_If: {
+                  fprintf(outf, "   ; If label\n");
+                  fprintf(outf, "if_label_%ld:\n", label_count++);
+                  fprintf(outf, "   ");
+               } continue;
+            }
+            
+            panic("unreachable");
          } continue;
 
          case IT_Not: {
@@ -172,23 +187,23 @@ void LIR_translate(LIR* self, FILE* outf) {
 
          case IT_Syscall: {
             fprintf(outf, "   ; Syscall\n");
-            for (i64 i = 0; i < instr->arg1; ++i) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
                fprintf(outf, "   %%val_%lu = load i64, i64* %%push_%lu\n", val_count++, stack[--stack_depth]);
             }
 
             fprintf(outf, "   %%result_%lu = call i64 asm sideeffect \"syscall\", \"={rax},", result_count++);
             SyscallReg reg = SR_Rax;
-            for (i64 i = 0; i < instr->arg1; ++i) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
                fprintf(outf, "{%s}", SyscallReg_to_cstr(reg++));
-               if (i + 1 < instr->arg1) {
+               if (i + 1 < instr->args[0]) {
                   fprintf(outf, ",");
                }
             }
 
             fprintf(outf, "\" (");
-            for (i64 i = 0; i < instr->arg1; ++i) {
-               fprintf(outf, "i64 %%val_%lu", (val_count - instr->arg1) + i);
-               if (i + 1 < instr->arg1) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
+               fprintf(outf, "i64 %%val_%lu", (val_count - instr->args[0]) + i);
+               if (i + 1 < instr->args[0]) {
                   fprintf(outf, ", ");
                }
             }
