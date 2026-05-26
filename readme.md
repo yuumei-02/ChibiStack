@@ -14,5 +14,6 @@ Then, run ```./vmake build``` and you're done. <br>
 # Roadmap
 [ ] statically typed <br>
 [ ] functions <br>
-[ ] syscalls <br>
+[ ] loops and if statements <br>
+[x] syscalls <br>
 
