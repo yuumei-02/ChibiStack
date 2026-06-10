@@ -11,9 +11,10 @@ Vlodinnye make: https://github.com/yuumei-02/Vlodinnye-make <br>
 Bootstrap the build system via ```gcc -std=c23 ./vmake.c -o ./vmake -lmcu-debug``` <br>
 Then, run ```./vmake build``` and you're done. <br>
 
+# Status
+Completed and served it's purpose. <br>
+
 # Roadmap
-[ ] statically typed <br>
-[ ] functions <br>
-[ ] loops and if statements <br>
+[2/3] loops and if statements <br>
 [x] syscalls <br>
 
