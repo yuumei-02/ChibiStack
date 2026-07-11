@@ -84,6 +84,16 @@ static inline void Lexer_advance(Lexer* self) {
    self->peek = self->file_contents[self->z++];
 }
 
+static bool word_allowed(char c) {
+   return (
+      c != '+' &&
+      c != '-' &&
+      c != ' ' &&
+      c != '\t' &&
+      c != '\n'
+   );
+}
+
 Token Lexer_next(Lexer* self) {
    mcu_assert(self != nullptr, "self can't be null");
 
@@ -104,6 +114,7 @@ Token Lexer_next(Lexer* self) {
          case LM_Trim: {
             token.z = self->z;
 
+            // @Note: Don't forget to update word_allowed when adding new non word characters!
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
 
@@ -123,19 +134,36 @@ Token Lexer_next(Lexer* self) {
                   else
                      goto default_trim;
                } break;
+
+               case ' ': break;
+               case '\t': break;
+               case '\n': break;
                
                default: {
                default_trim:
                   if (self->current >= '0' && self->current <= '9') {
                      num_is_negative = false;
                      mode = LM_IntLiteral;
-                     goto reparse_char;
+                  } else {
+                     token.str_literal = (StringView) {
+                        .chars = self->file_contents + (self->z - 2),
+                        .length = 0
+                     };
+                     mode = LM_Word;
                   }
+                  goto reparse_char;
                }
             }
          } continue;
 
-         case LM_Word: mcu_todo("not yet implemented");
+         case LM_Word: {
+            token.str_literal.length++;
+
+            if (!word_allowed(self->peek)) {
+               token.type = TT_Word;
+               return token;
+            }
+         } continue;
 
          case LM_IntLiteral: {
             token.int_literal *= 10;
