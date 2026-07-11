@@ -11,6 +11,12 @@
 
 #include "lexer.h"
 
+HashMap_hdr(TokenType)
+HashMap_impl(TokenType)
+
+static HashMap(TokenType) G_keywords;
+static bool G_keywords_defined = false;
+
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
       case TT_Eof:        return "Eof";
@@ -28,8 +34,22 @@ const cstr TokenType_to_cstr(TokenType self) {
    return "Unknown";
 }
 
+static void check_define_keywords() {
+   if (G_keywords_defined) return;
+
+   G_keywords_defined = true;
+   G_keywords = HashMap_new(TokenType)();
+
+   HashMap_put(TokenType)(&G_keywords, "idiv", TT_Idiv);
+   HashMap_put(TokenType)(&G_keywords, "imul", TT_Imul);
+   HashMap_put(TokenType)(&G_keywords, "udiv", TT_Udiv);
+   HashMap_put(TokenType)(&G_keywords, "umul", TT_Umul);
+   HashMap_put(TokenType)(&G_keywords, "puti", TT_Puti);
+}
+
 Lexer Lexer_new(cstr file_path) {
    // @Todo: Convert file_path to an absolute path
+   check_define_keywords();
 
    Lexer self = {
       .file_path = file_path
@@ -160,7 +180,15 @@ Token Lexer_next(Lexer* self) {
             token.str_literal.length++;
 
             if (!word_allowed(self->peek)) {
-               token.type = TT_Word;
+               char tmp = token.str_literal.chars[token.str_literal.length];
+               token.str_literal.chars[token.str_literal.length] = '\0';
+               TokenType* keyword = HashMap_get(TokenType)(&G_keywords, token.str_literal.chars);
+               token.str_literal.chars[token.str_literal.length] = tmp;
+
+               if (keyword == nullptr)
+                  token.type = TT_Word;
+               else
+                  token.type = *keyword;
                return token;
             }
          } continue;
