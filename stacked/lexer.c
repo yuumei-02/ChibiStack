@@ -16,8 +16,10 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Eof:        return "Eof";
       case TT_Add:        return "Add";
       case TT_Sub:        return "Sub";
-      case TT_Div:        return "Div";
-      case TT_Mul:        return "Mul";
+      case TT_Idiv:       return "Idiv";
+      case TT_Imul:       return "Imul";
+      case TT_Udiv:       return "Udiv";
+      case TT_Umul:       return "Umul";
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_Puti:       return "Puti";
@@ -27,6 +29,8 @@ const cstr TokenType_to_cstr(TokenType self) {
 }
 
 Lexer Lexer_new(cstr file_path) {
+   // @Todo: Convert file_path to an absolute path
+
    Lexer self = {
       .file_path = file_path
    };
@@ -49,11 +53,13 @@ Lexer Lexer_new(cstr file_path) {
    rewind(handle);
 
    self.file_contents = mcu_malloc((usize) file_size + 1);
-   self.file_contents[file_size] = '\0';
 
    isize read = fread(self.file_contents, 1, (usize) file_size, handle);
    if (read != file_size)
       goto read_failure;
+
+   self.file_contents[file_size] = '\0';
+   self.peek = self.file_contents[self.z++];
 
    if (fclose(handle)) {
       eprintln("[!] Failed to close file \"%s\", reason: \"%s\"", file_path, strerror(errno));
@@ -73,12 +79,59 @@ void Lexer_delete(Lexer* self) {
    *self = (Lexer) {0};
 }
 
+static inline void Lexer_advance(Lexer* self) {
+   self->current = self->peek;
+   self->peek = self->file_contents[self->z++];
+}
+
 Token Lexer_next(Lexer* self) {
    mcu_assert(self != nullptr, "self can't be null");
 
-   return (Token) {
-      .type = TT_Eof
+   Token token = {
+      .type = TT_Eof,
+      .z = self->z
    };
+   LexerMode mode = LM_Trim;
+
+   loop {
+      Lexer_advance(self);
+      if (self->current == '\0')
+         break;
+
+      switch (mode) {
+         case LM_Trim: {
+            token.z = self->z;
+
+            switch (self->current) {
+               case '+': token.type = TT_Add; return token;
+               case '-': token.type = TT_Sub; return token;
+
+               case '/': {
+                  if (self->peek == '/')
+                     mode = LM_Comment;
+                  else
+                     goto default_trim;
+               } break;
+               
+               default: {
+                  default_trim:
+               }
+            }
+         } continue;
+
+         case LM_Word: [[fallthrough]];
+         case LM_IntLiteral: mcu_todo("not yet implemented");
+
+         case LM_Comment: {
+            if (self->current == '\n')
+               mode = LM_Trim;
+         } continue;
+      }
+
+      panic("unreachable");
+   }
+
+   return token;
 }
 
 void Token_dump(Token self, Lexer* lexer) {

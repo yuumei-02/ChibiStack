@@ -8,8 +8,10 @@ typedef enum : i32 {
    
    TT_Add,
    TT_Sub,
-   TT_Div,
-   TT_Mul,
+   TT_Idiv,
+   TT_Imul,
+   TT_Udiv,
+   TT_Umul,
 
    TT_Word,
    TT_IntLiteral,
@@ -36,10 +38,12 @@ typedef enum {
 } LexerMode;
 
 typedef struct {
-   u32 z;
-
    cstr file_path;
    cstr file_contents;
+
+   u32 z;
+   i32 current;
+   i32 peek;
 } Lexer;
 
 Lexer Lexer_new(cstr file_path);
