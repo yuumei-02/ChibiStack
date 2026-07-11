@@ -92,19 +92,30 @@ Token Lexer_next(Lexer* self) {
       .z = self->z
    };
    LexerMode mode = LM_Trim;
+   bool num_is_negative = false;
 
    loop {
       Lexer_advance(self);
       if (self->current == '\0')
          break;
 
+   reparse_char:
       switch (mode) {
          case LM_Trim: {
             token.z = self->z;
 
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
-               case '-': token.type = TT_Sub; return token;
+
+               case '-': {
+                  if (!(self->peek >= '0' && self->peek <= '9')) {
+                     token.type = TT_Sub;
+                     return token;
+                  } else {
+                     num_is_negative = true;
+                     mode = LM_IntLiteral;
+                  }
+               } break;
 
                case '/': {
                   if (self->peek == '/')
@@ -114,13 +125,30 @@ Token Lexer_next(Lexer* self) {
                } break;
                
                default: {
-                  default_trim:
+               default_trim:
+                  if (self->current >= '0' && self->current <= '9') {
+                     num_is_negative = false;
+                     mode = LM_IntLiteral;
+                     goto reparse_char;
+                  }
                }
             }
          } continue;
 
-         case LM_Word: [[fallthrough]];
-         case LM_IntLiteral: mcu_todo("not yet implemented");
+         case LM_Word: mcu_todo("not yet implemented");
+
+         case LM_IntLiteral: {
+            token.int_literal *= 10;
+            token.int_literal += self->current - '0';
+
+            if (!(self->peek >= '0' && self->peek <= '9')) {
+               token.type = TT_IntLiteral;
+               if (num_is_negative)
+                  token.int_literal = -token.int_literal;
+               
+               return token;
+            }
+         } continue;
 
          case LM_Comment: {
             if (self->current == '\n')
