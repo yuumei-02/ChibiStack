@@ -3,7 +3,7 @@
 
 #pragma once
 
-typedef struct : i32 {
+typedef enum : i32 {
    TT_Eof,
    
    TT_Add,
@@ -11,7 +11,10 @@ typedef struct : i32 {
    TT_Div,
    TT_Mul,
 
-   TT_Word
+   TT_Word,
+
+   // Temporary instrinsic procedure
+   TT_Puti
 } TokenType;
 
 typedef struct {
@@ -28,6 +31,7 @@ typedef enum {
    LM_Trim,
    LM_Word,
    LM_IntLiteral,
+   LM_Comment
 } LexerMode;
 
 typedef struct {
@@ -41,4 +45,6 @@ Lexer Lexer_new(cstr file_path);
 void Lexer_delete(Lexer* self);
 
 Token Lexer_next(Lexer* self);
+
+void Token_dump(Token self, Lexer* lexer);
 
