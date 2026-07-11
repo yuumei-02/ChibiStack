@@ -49,7 +49,8 @@ void llvm_hdr(LIR* lir, FILE* outf) {
    }
       
    fprintf(outf,
-      "define i32 @main() {\n");
+      "define i32 @main() {\n"
+      "entry:\n");
 }
 
 // @todo: allocate the stack upfront to allow for more llvm optimizations
@@ -74,9 +75,9 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
 
-            String* str_lit = Vector_get(&self->StrLiterals, (usize) instr->arg1);
+            String* str_lit = Vector_get(&self->StrLiterals, (usize) instr->args[0]);
             fprintf(outf, "   %%tmp_%lu = getelementptr [%zu x i8], ptr @strlit_%ld, i32 0, i32 0\n",
-               tmp_count++, str_lit->length + 1, instr->arg1);
+               tmp_count++, str_lit->length + 1, instr->args[0]);
             fprintf(outf, "   store ptr %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
          } continue;
       
@@ -84,7 +85,7 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   ; Push\n");
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
-            fprintf(outf, "   store i64 %ld, i64* %%push_%lu\n\n", instr->arg1, stack[stack_depth - 1]);
+            fprintf(outf, "   store i64 %ld, i64* %%push_%lu\n\n", instr->args[0], stack[stack_depth - 1]);
          } continue;
 
          case IT_Pop: {
@@ -108,9 +109,25 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   store i64 %%val_%lu, i64* %%push_%lu\n\n", val_count - 1, stack[stack_depth - 1]);
          } continue;
 
-         case IT_Add: fprintf(outf, "   ; Add\n"); goto arithmatic;
-         case IT_Sub: fprintf(outf, "   ; Sub\n"); goto arithmatic;
-         case IT_Mul: fprintf(outf, "   ; Mul\n"); goto arithmatic;
+         case IT_Not: {
+            fprintf(outf, "   ; Not\n");
+            fprintf(outf, "   %%val_%lu = load i64, i64* %%push_%lu\n", val_count++, stack[--stack_depth]);
+            fprintf(outf, "   %%result_%lu = icmp eq i64 %%val_%lu, 0\n", result_count++, val_count - 1);
+            fprintf(outf, "   %%tmp_%lu = zext i1 %%result_%lu to i64\n", tmp_count++, result_count - 1);
+            fprintf(outf, "   %%push_%lu = alloca i64", push_count);
+            stack[stack_depth++] = push_count++;
+            fprintf(outf, "   store i64 %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
+         } continue;
+
+         case IT_Equ:     fprintf(outf, "   ; Equ\n");     goto arithmatic;
+         case IT_NotEqu:  fprintf(outf, "   ; NotEqu\n");  goto arithmatic;
+         case IT_Less:    fprintf(outf, "   ; Less\n");    goto arithmatic;
+         case IT_More:    fprintf(outf, "   ; More\n");    goto arithmatic;
+         case IT_LessEqu: fprintf(outf, "   ; LessEqu\n"); goto arithmatic;
+         case IT_MoreEqu: fprintf(outf, "   ; MoreEqu\n"); goto arithmatic;
+         case IT_Add:     fprintf(outf, "   ; Add\n");     goto arithmatic;
+         case IT_Sub:     fprintf(outf, "   ; Sub\n");     goto arithmatic;
+         case IT_Mul:     fprintf(outf, "   ; Mul\n");     goto arithmatic;
          case IT_Div: {
             fprintf(outf, "   ; Div\n");
          arithmatic:
@@ -119,38 +136,60 @@ void LIR_translate(LIR* self, FILE* outf) {
             fprintf(outf, "   %%result_%lu = ", result_count++);
 
             switch (instr->type) {
-               case IT_Add: fprintf(outf, "add");  break;
-               case IT_Sub: fprintf(outf, "sub");  break;
-               case IT_Mul: fprintf(outf, "mul");  break;
-               case IT_Div: fprintf(outf, "sdiv"); break;
+               case IT_Add:     fprintf(outf, "add");      break;
+               case IT_Sub:     fprintf(outf, "sub");      break;
+               case IT_Mul:     fprintf(outf, "mul");      break;
+               case IT_Div:     fprintf(outf, "sdiv");     break;
+               case IT_Equ:     fprintf(outf, "icmp eq");  break;
+               case IT_NotEqu:  fprintf(outf, "icmp ne");  break;
+               case IT_Less:    fprintf(outf, "icmp slt"); break;
+               case IT_More:    fprintf(outf, "icmp sgt"); break;
+               case IT_LessEqu: fprintf(outf, "icmp sle"); break;
+               case IT_MoreEqu: fprintf(outf, "icmp sge"); break;
+               
                default: panic("unreachable");
             }
             
             fprintf(outf, " i64 %%val_%lu, %%val_%lu\n", val_count - 1, val_count - 2);
             fprintf(outf, "   %%push_%lu = alloca i64\n", push_count);
             stack[stack_depth++] = push_count++;
-            fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
+
+            switch (instr->type) {
+               case IT_Equ:     [[fallthrough]];
+               case IT_NotEqu:  [[fallthrough]];
+               case IT_Less:    [[fallthrough]];
+               case IT_More:    [[fallthrough]];
+               case IT_LessEqu: [[fallthrough]];
+               case IT_MoreEqu: {
+                  fprintf(outf, "   %%tmp_%lu = zext i1 %%result_%lu to i64\n", tmp_count++, result_count - 1);
+                  fprintf(outf, "   store i64 %%tmp_%lu, i64* %%push_%lu\n\n", tmp_count - 1, stack[stack_depth - 1]);
+               } break;
+               
+               default: {
+                  fprintf(outf, "   store i64 %%result_%lu, i64* %%push_%lu\n\n", result_count - 1, stack[stack_depth - 1]);
+               }
+            }
          } continue;
 
          case IT_Syscall: {
             fprintf(outf, "   ; Syscall\n");
-            for (i64 i = 0; i < instr->arg1; ++i) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
                fprintf(outf, "   %%val_%lu = load i64, i64* %%push_%lu\n", val_count++, stack[--stack_depth]);
             }
 
             fprintf(outf, "   %%result_%lu = call i64 asm sideeffect \"syscall\", \"={rax},", result_count++);
             SyscallReg reg = SR_Rax;
-            for (i64 i = 0; i < instr->arg1; ++i) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
                fprintf(outf, "{%s}", SyscallReg_to_cstr(reg++));
-               if (i + 1 < instr->arg1) {
+               if (i + 1 < instr->args[0]) {
                   fprintf(outf, ",");
                }
             }
 
             fprintf(outf, "\" (");
-            for (i64 i = 0; i < instr->arg1; ++i) {
-               fprintf(outf, "i64 %%val_%lu", (val_count - instr->arg1) + i);
-               if (i + 1 < instr->arg1) {
+            for (i64 i = 0; i < instr->args[0]; ++i) {
+               fprintf(outf, "i64 %%val_%lu", (val_count - instr->args[0]) + i);
+               if (i + 1 < instr->args[0]) {
                   fprintf(outf, ", ");
                }
             }

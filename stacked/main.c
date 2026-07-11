@@ -24,6 +24,7 @@ i32 compile(cstr file_path, CompileFlags flags) {
    }
 
    LIR lir = LIR_from_lexer(&lexer);
+   LIR_path_labels(&lir);
    if (flags.lir_dump) {
       LIR_display(&lir);
       return 0;

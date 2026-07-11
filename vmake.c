@@ -1,10 +1,8 @@
 #define VMAKE_IMPL
 #include <vmake.h>
 
-Vmake vmake;
-
 i32 main(i32 argc, cstr argv[]) {
-   vmake = Vmake_go_rebuild_yourself(argc, argv);
+   Vmake_go_rebuild_yourself(argc, argv);
    
    ModuleId stacked = Module_new("stacked", "./stacked", MT_Executable);
    BuildOptions build_options;

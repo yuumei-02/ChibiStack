@@ -4,11 +4,17 @@ typedef enum {
    // Misc
    TT_Eof,
 
-   // Operators
+   // Arithmatic operators
    TT_Add,
    TT_Sub,
    TT_Mul,
    TT_Div,
+
+   // Logical operators
+   TT_Equals,  TT_NotEquals,
+   TT_Less,    TT_More,
+   TT_LessEqu, TT_MoreEqu,
+   TT_Not,
 
    // Literals
    TT_Identifier,
@@ -19,6 +25,9 @@ typedef enum {
    TT_Drop,
    TT_Swap,
    TT_Dup,
+   TT_If,
+   TT_Do,
+   TT_End,
    TT_Syscall1,
    TT_Syscall2,
    TT_Syscall3,
