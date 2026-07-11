@@ -13,7 +13,9 @@ More will be added as the compiler implements more features.
 
 # Operators
 ## Arithmatic
-* + - / *
+* + -
+  idiv udiv
+  imul umul
 
 ## Logical
 * == !=
