@@ -11,6 +11,21 @@
 
 #include "lexer.h"
 
+const cstr TokenType_to_cstr(TokenType self) {
+   switch (self) {
+      case TT_Eof:        return "Eof";
+      case TT_Add:        return "Add";
+      case TT_Sub:        return "Sub";
+      case TT_Div:        return "Div";
+      case TT_Mul:        return "Mul";
+      case TT_Word:       return "Word";
+      case TT_IntLiteral: return "IntLiteral";
+      case TT_Puti:       return "Puti";
+   }
+
+   return "Unknown";
+}
+
 Lexer Lexer_new(cstr file_path) {
    Lexer self = {
       .file_path = file_path
@@ -67,8 +82,21 @@ Token Lexer_next(Lexer* self) {
 }
 
 void Token_dump(Token self, Lexer* lexer) {
-   unused self;
-
    mcu_assert(lexer != nullptr, "lexer can't be null");
+
+   // @Todo: Show the actual file location
+   printf("%s:1:1: info: %s", lexer->file_path, TokenType_to_cstr(self.type));
+
+   switch (self.type) {
+      case TT_Word: {
+         println(" (%.*s)", (i32) self.str_literal.length, self.str_literal.chars);
+      } break;
+
+      case TT_IntLiteral: {
+         println(" (%ld)", self.int_literal);
+      } break;
+
+      default: printf("\n");
+   }
 }
 

@@ -12,6 +12,7 @@ typedef enum : i32 {
    TT_Mul,
 
    TT_Word,
+   TT_IntLiteral,
 
    // Temporary instrinsic procedure
    TT_Puti
@@ -47,4 +48,6 @@ void Lexer_delete(Lexer* self);
 Token Lexer_next(Lexer* self);
 
 void Token_dump(Token self, Lexer* lexer);
+
+const cstr TokenType_to_cstr(TokenType self);
 
