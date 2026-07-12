@@ -31,7 +31,7 @@ IR IR_from_file(cstr file) {
    IR self = {
       .Lexers = Vector_new(sizeof(Lexer)),
       .IrInstructions = Vector_new(sizeof(IrInstr)),
-      .string_literals = Vector_new(sizeof(StringView))
+      .string_literals = Vector_new(sizeof(String))
    };
 
    Vector_push_create(&self.Lexers, (Lexer_new(file)));
@@ -91,6 +91,11 @@ void IR_delete(IR* self) {
    foreach (self->Lexers, i) {
       Lexer* lexer = Vector_get(&self->Lexers, i);
       Lexer_delete(lexer);
+   }
+
+   foreach (self->string_literals, i) {
+      String* str = Vector_get(&self->string_literals, i);
+      String_free(str);
    }
 
    Vector_free(&self->Lexers);

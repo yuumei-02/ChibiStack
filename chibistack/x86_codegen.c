@@ -269,9 +269,20 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
 
    outwrite(handle, "section .data\n");
 
+   // @Todo: I don't know if there is a better way to do this but
+   //        this method Seems really slow to me.
+   //        We should look into whether or not this is a good method.
+   //        - Yuumei-02, 12-07-2026 20:33
    foreach (ir->string_literals, i) {
-      StringView* str = Vector_get(&ir->string_literals, i);
-      outwrite(handle, "addr%zu: db \"%.*s\"", i, (i32) str->length, str->chars);
+      String* str = Vector_get(&ir->string_literals, i);
+      outwrite(handle, "addr%zu: db ", i);
+      
+      for (usize i = 0; i < str->length; ++i) {
+         if (i + 1 < str->length)
+            outwrite(handle, "%d,", (i32) str->chars[i]);
+         else
+            outwrite(handle, "%d\n", (i32) str->chars[i]);
+      }
    }
    
    close_file_handle(handle, asm_dump);

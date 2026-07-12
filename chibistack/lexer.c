@@ -163,10 +163,7 @@ Token Lexer_next(Lexer* self) {
                } break;
 
                case '"': {
-                  token.str_literal = (StringView) {
-                     .chars = self->file_contents + (self->z - 1),
-                     .length = 0
-                  };
+                  token.str_literal = String_new();
                   mode = LM_StrLiteral;
                } break;
 
@@ -180,7 +177,7 @@ Token Lexer_next(Lexer* self) {
                      num_is_negative = false;
                      mode = LM_IntLiteral;
                   } else {
-                     token.str_literal = (StringView) {
+                     token.str_view = (StringView) {
                         .chars = self->file_contents + (self->z - 2),
                         .length = 0
                      };
@@ -192,13 +189,13 @@ Token Lexer_next(Lexer* self) {
          } continue;
 
          case LM_Word: {
-            token.str_literal.length++;
+            token.str_view.length++;
 
             if (!word_allowed(self->peek)) {
-               char tmp = token.str_literal.chars[token.str_literal.length];
-               token.str_literal.chars[token.str_literal.length] = '\0';
-               TokenType* keyword = HashMap_get(TokenType)(&G_keywords, token.str_literal.chars);
-               token.str_literal.chars[token.str_literal.length] = tmp;
+               char tmp = token.str_view.chars[token.str_view.length];
+               token.str_view.chars[token.str_view.length] = '\0';
+               TokenType* keyword = HashMap_get(TokenType)(&G_keywords, token.str_view.chars);
+               token.str_view.chars[token.str_view.length] = tmp;
 
                if (keyword == nullptr)
                   token.type = TT_Word;
@@ -222,13 +219,39 @@ Token Lexer_next(Lexer* self) {
          } continue;
 
          case LM_StrLiteral: {
-            token.str_literal.length++;
+            switch (self->current) {
+               case '\\': {
+                  Lexer_advance(self);
+
+                  // @Todo: Report invalid escape sequences
+                  switch (self->current) {
+                     case 'n': String_append(&token.str_literal, '\n'); break;
+                     case '\0': goto StrLiteralEofCase;
+                     default: {
+                        String_append(&token.str_literal, '\\');
+                        String_append(&token.str_literal, self->current);
+                     }
+                  }
+               } break;
+
+               default: String_append(&token.str_literal, self->current);
+            }
+
+            // In order to prevent a memory leak for when the String never terminates due to EOF
+            if (self->peek == EOF) {
+               String_free(&token.str_literal);
+            }
 
             if (self->peek == '"') {
                Lexer_advance(self);
                token.type = TT_StrLiteral;
                return token;
             }
+
+            continue;
+         StrLiteralEofCase:
+            String_free(&token.str_literal);
+            return token;
          } continue;
 
          case LM_Comment: {
@@ -272,11 +295,15 @@ void Token_dump(Token self, Lexer* lexer) {
 
    switch (self.type) {
       case TT_Word: {
-         println(" (%.*s)", (i32) self.str_literal.length, self.str_literal.chars);
+         println(" (%.*s)", (i32) self.str_view.length, self.str_view.chars);
       } break;
 
       case TT_IntLiteral: {
          println(" (%ld)", self.int_literal);
+      } break;
+
+      case TT_StrLiteral: {
+         println(" (%s)", self.str_literal.chars);
       } break;
 
       default: printf("\n");

@@ -33,7 +33,8 @@ typedef struct {
 
    union {
       i64 int_literal;
-      StringView str_literal;
+      StringView str_view;
+      String str_literal;
    };
 } Token;
 
