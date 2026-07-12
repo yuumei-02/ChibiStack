@@ -3,7 +3,7 @@
 
 #pragma once
 
-typedef enum : u8 {
+typedef enum : u16 {
    IIK_Push,
 
    IIK_Add,
@@ -17,12 +17,18 @@ typedef enum : u8 {
 } IrInstrKind;
 
 typedef struct {
+   union {
+      i64 int_value;
+      u64 uint_value;
+   };
+
+   u32 z;
+   u16 lexer;
    IrInstrKind kind;
-   u8 variant;
-   u16 args;
 } IrInstr;
 
 typedef struct {
+   Vector Lexers;
    Vector IrInstructions;
 } IR;
 
