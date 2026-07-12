@@ -114,17 +114,15 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
          case IIK_Sub:  [[fallthrough]];
          case IIK_Add:  [[fallthrough]];
          case IIK_Idiv: [[fallthrough]];
-         case IIK_Imul: [[fallthrough]];
          case IIK_Udiv: [[fallthrough]];
-         case IIK_Umul: {
+         case IIK_Mul: {
             outwrite(handle,
                "   pop rbx\n"
                "   pop rax\n");
             switch (instr->kind) {
-               case IIK_Add:  outwrite(handle, "   add rax, rbx\n");  break;
-               case IIK_Sub:  outwrite(handle, "   sub rax, rbx\n");  break;
-               case IIK_Imul: [[fallthrough]];
-               case IIK_Umul: outwrite(handle, "   imul rax, rbx\n"); break;
+               case IIK_Add: outwrite(handle, "   add rax, rbx\n");  break;
+               case IIK_Sub: outwrite(handle, "   sub rax, rbx\n");  break;
+               case IIK_Mul: outwrite(handle, "   imul rax, rbx\n"); break;
                
                case IIK_Idiv: {
                   outwrite(handle,

@@ -23,9 +23,8 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Add:        return "Add";
       case TT_Sub:        return "Sub";
       case TT_Idiv:       return "Idiv";
-      case TT_Imul:       return "Imul";
       case TT_Udiv:       return "Udiv";
-      case TT_Umul:       return "Umul";
+      case TT_Mul:        return "Mul";
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_Puti:       return "Puti";
@@ -41,9 +40,7 @@ static void check_define_keywords() {
    G_keywords = HashMap_new(TokenType)();
 
    HashMap_put(TokenType)(&G_keywords, "idiv", TT_Idiv);
-   HashMap_put(TokenType)(&G_keywords, "imul", TT_Imul);
    HashMap_put(TokenType)(&G_keywords, "udiv", TT_Udiv);
-   HashMap_put(TokenType)(&G_keywords, "umul", TT_Umul);
    HashMap_put(TokenType)(&G_keywords, "puti", TT_Puti);
 }
 
@@ -143,6 +140,7 @@ Token Lexer_next(Lexer* self) {
             // @Note: Don't forget to update word_allowed when adding new non word characters!
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
+               case '*': token.type = TT_Mul; return token;
 
                case '-': {
                   if (!(self->peek >= '0' && self->peek <= '9')) {

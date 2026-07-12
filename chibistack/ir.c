@@ -14,9 +14,8 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_Add:     return "Add";
       case IIK_Sub:     return "Sub";
       case IIK_Idiv:    return "Idiv";
-      case IIK_Imul:    return "Imul";
       case IIK_Udiv:    return "Udiv";
-      case IIK_Umul:    return "Umul";
+      case IIK_Mul:     return "Mul";
       case IIK_Puti:    return "Puti";
    }
 
@@ -52,9 +51,8 @@ IR IR_from_file(cstr file) {
          case TT_Add:  { instr.kind = IIK_Add;  Vector_push(&self.IrInstructions, &instr); } continue;
          case TT_Sub:  { instr.kind = IIK_Sub;  Vector_push(&self.IrInstructions, &instr); } continue;
          case TT_Idiv: { instr.kind = IIK_Idiv; Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Imul: { instr.kind = IIK_Imul; Vector_push(&self.IrInstructions, &instr); } continue;
          case TT_Udiv: { instr.kind = IIK_Udiv; Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Umul: { instr.kind = IIK_Umul; Vector_push(&self.IrInstructions, &instr); } continue;
+         case TT_Mul:  { instr.kind = IIK_Mul;  Vector_push(&self.IrInstructions, &instr); } continue;
 
          case TT_Puti: { instr.kind = IIK_Puti; Vector_push(&self.IrInstructions, &instr); } continue;
 

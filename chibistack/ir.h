@@ -9,9 +9,8 @@ typedef enum : u16 {
    IIK_Add,
    IIK_Sub,
    IIK_Idiv,
-   IIK_Imul,
    IIK_Udiv,
-   IIK_Umul,
+   IIK_Mul,
 
    IIK_Puti
 } IrInstrKind;

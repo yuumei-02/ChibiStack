@@ -14,9 +14,8 @@ typedef enum : i32 {
    TT_Add,
    TT_Sub,
    TT_Idiv,
-   TT_Imul,
    TT_Udiv,
-   TT_Umul,
+   TT_Mul,
 
    TT_Word,
    TT_IntLiteral,
