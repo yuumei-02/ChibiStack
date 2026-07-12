@@ -29,3 +29,26 @@ More will be added as the compiler implements more features.
 * & |
 * ^
 
+# Instrinsics
+## Stack operations
+* Dup    Duplicate the element at the top of the stack
+* Drop   Drop an item from the top of the stack
+* swap   Swap the top of the stack with the item before it
+
+## Syscalls
+* syscall[0-6]   Perform a syscall with n number of arguments
+
+# Types
+## Build-in types
+* int
+* uint
+* ptr
+
+## Typed pointers
+A standalone ptr is untyped.
+Pointers can be made typed by specifying it's type before it.
+example
+``` ChibiStack
+int ptr ptr // Pointer to a Pointer to an int
+```
+
