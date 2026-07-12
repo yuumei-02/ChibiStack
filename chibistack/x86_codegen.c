@@ -95,6 +95,9 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "section .text\n"
       "\n"
       "_start:\n"
+      "   xor rbp, rbp\n"
+      "   and rsp, -16\n"
+      "   sub rsp, 8\n"
       "   call main\n"
       "   mov eax, 60\n"
       "   xor edi, edi\n"
@@ -164,19 +167,17 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "\n"
       "main:\n"
       "   push rbp\n"
-      "   mov rbp, rsp\n"
-      "   and rsp, -16\n");
+      "   mov rbp, rsp\n");
 
-   // @Todo: The stack is not always 16 bit aligned which is needed for procedure calls.
-   //        Since we do stack operations with 8 byte values. If the stack has an odd number
-   //        off elements, we simply push an extra dummy value onto the stack and remove it
-   //        after the procedure call.
+   u32 stack_element_count = 0;
+   
    foreach (ir->IrInstructions, i) {
       IrInstr* instr = Vector_get(&ir->IrInstructions, i);
       outwrite(handle, "   ; %s\n", IrInstrKind_to_cstr(instr->kind));
 
       switch (instr->kind) {
          case IIK_PushInt: {
+            stack_element_count++;
             outwrite(handle, "   push %ld\n", instr->int_value);
          } continue;
 
@@ -185,6 +186,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
          case IIK_Idiv: [[fallthrough]];
          case IIK_Udiv: [[fallthrough]];
          case IIK_Mul: {
+            stack_element_count--;
             outwrite(handle,
                "   pop rbx\n"
                "   pop rax\n");
@@ -211,9 +213,12 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
          } continue;
 
          case IIK_Puti: {
-            outwrite(handle,
-               "   pop rdi\n"
-               "   call puti\n");
+            stack_element_count--;
+            outwrite(handle, "   pop rdi\n");
+            bool misaligned = stack_element_count > 0 && stack_element_count % 2 == 1;
+            if (misaligned) outwrite(handle, "   sub rsp, 8\n");
+            outwrite(handle, "   call puti\n");
+            if (misaligned) outwrite(handle, "   add rsp, 8\n");
          } continue;
       }
 
