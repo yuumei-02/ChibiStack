@@ -4,7 +4,7 @@
 #pragma once
 
 typedef enum : u16 {
-   IIK_Push,
+   IIK_PushInt,
 
    IIK_Add,
    IIK_Sub,
