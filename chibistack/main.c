@@ -67,6 +67,8 @@ statistics:
    println("Code generation : %.6lf seconds", code_gen_time);
    println("Nasm & Linker   : %.6lf seconds", linker_time);
    println("------------------------------------");
+   println("Total time      : %.6lf seconds", ir_time + code_gen_time + linker_time);
+   println("------------------------------------");
    println(failure == false
       ? "Compilation succeeded\n"
       : "Compilation failure\n");
