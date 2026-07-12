@@ -2,6 +2,7 @@
 ChibiStack is stack-based programming made for recreational purposes. <br>
 
 # Dependencies
+Nasm: https://www.nasm.us/ <br>
 Mektova-C-Utils: https://github.com/yuumei-02/Mektova-C-Utils <br>
 Vlodinnye make: https://github.com/yuumei-02/Vlodinnye-make <br>
 
