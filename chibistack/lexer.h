@@ -21,6 +21,8 @@ typedef enum : i32 {
    TT_IntLiteral,
    TT_StrLiteral,
 
+   TT_Syscall4,
+
    // Temporary instrinsic procedure
    TT_Puti
 } TokenType;

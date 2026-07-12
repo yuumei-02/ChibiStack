@@ -28,6 +28,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_StrLiteral: return "StrLiteral";
+      case TT_Syscall4:   return "Syscall4";
       case TT_Puti:       return "Puti";
    }
 
@@ -40,9 +41,10 @@ static void check_define_keywords() {
    G_keywords_defined = true;
    G_keywords = HashMap_new(TokenType)();
 
-   HashMap_put(TokenType)(&G_keywords, "idiv", TT_Idiv);
-   HashMap_put(TokenType)(&G_keywords, "udiv", TT_Udiv);
-   HashMap_put(TokenType)(&G_keywords, "puti", TT_Puti);
+   HashMap_put(TokenType)(&G_keywords, "idiv",     TT_Idiv);
+   HashMap_put(TokenType)(&G_keywords, "udiv",     TT_Udiv);
+   HashMap_put(TokenType)(&G_keywords, "syscall4", TT_Syscall4);
+   HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
 Lexer Lexer_new(cstr file_path) {

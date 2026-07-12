@@ -182,7 +182,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
                outwrite(handle, "   push %ld\n", instr->int_value);
             } else {
                outwrite(handle,
-                  "   mov rax, %ld\n",
+                  "   mov rax, %ld\n"
                   "   push rax\n",
                   instr->int_value);
             }
@@ -194,7 +194,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
                outwrite(handle, "   push %lu\n", instr->uint_value);
             } else {
                outwrite(handle,
-                  "   mov rax, %lu\n",
+                  "   mov rax, %lu\n"
                   "   push rax\n",
                   instr->uint_value);
             }
@@ -237,6 +237,15 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
                default: panic("unreachable");
             }
             outwrite(handle, "   push rax\n");
+         } continue;
+
+         case IIK_Syscall4: {
+            outwrite(handle,
+               "   pop rax\n"
+               "   pop rdi\n"
+               "   pop rsi\n"
+               "   pop rdx\n"
+               "   syscall\n");
          } continue;
 
          case IIK_Puti: {

@@ -18,6 +18,7 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_Idiv:     return "Idiv";
       case IIK_Udiv:     return "Udiv";
       case IIK_Mul:      return "Mul";
+      case IIK_Syscall4: return "Syscall4";
       case IIK_Puti:     return "Puti";
    }
 
@@ -69,6 +70,8 @@ IR IR_from_file(cstr file) {
          case TT_Udiv: { instr.kind = IIK_Udiv; Vector_push(&self.IrInstructions, &instr); } continue;
          case TT_Mul:  { instr.kind = IIK_Mul;  Vector_push(&self.IrInstructions, &instr); } continue;
 
+         case TT_Syscall4: { instr.kind = IIK_Syscall4; Vector_push(&self.IrInstructions, &instr); } continue;
+
          case TT_Puti: { instr.kind = IIK_Puti; Vector_push(&self.IrInstructions, &instr); } continue;
 
          case TT_Word: mcu_todo("not yet implemented");
@@ -109,7 +112,9 @@ void IR_dump(IR* self) {
          lexer->file_path, loc.y, loc.x, IrInstrKind_to_cstr(instr->kind));
 
       switch (instr->kind) {
-         case IIK_PushInt: println(" (%ld)", instr->int_value); break;
+         case IIK_PushInt:  println(" (%ld)", instr->int_value);  break;
+         case IIK_PushUint: println(" (%lu)", instr->uint_value); break;
+         case IIK_PushAddr: println(" (%lu)", instr->uint_value); break;
          default: printf("\n");
       }
    }
