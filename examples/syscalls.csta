@@ -1,0 +1,15 @@
+// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// See the LICENSE file for more information.
+
+// Syscalls are a way to communicate with the OS
+// Here is the syscall table for x86-64 Linux, the target of this language.
+// @Link: https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
+// Since this language is stacked based, arguments get passed in reverse order.
+// There are 7 syscall instrinsics. syscall[0-6]
+// The number after the syscall keyword indicates the amount of parameters AFTER
+// the syscall number that the syscall requires.
+// Syscalls always return a result value which is why you see a drop at the end of each syscall.
+// The drop lets us ignore the result value from the syscall.
+
+"Invoke the write syscall!\n" 1 1 syscall3 drop
+

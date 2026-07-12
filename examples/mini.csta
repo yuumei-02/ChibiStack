@@ -1,0 +1,8 @@
+// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// See the LICENSE file for more information.
+
+// This file is not an example but rather a testing ground
+// for developing the compiler.
+
+"Zhyivannye miratte!\n" 1 1 syscall3 drop
+

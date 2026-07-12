@@ -1,0 +1,7 @@
+// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// See the LICENSE file for more information.
+
+10 dup +       puti "\n" 1 1 syscall3 drop // Duplicate the top of the stack
+2 10 swap idiv puti "\n" 1 1 syscall3 drop // Swap the top of the stack with the first element below it
+2 3 10 drop *  puti "\n" 1 1 syscall3 drop // Remove the element at the top of the stack
+
