@@ -27,6 +27,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Mul:        return "Mul";
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
+      case TT_StrLiteral: return "StrLiteral";
       case TT_Puti:       return "Puti";
    }
 
@@ -159,6 +160,14 @@ Token Lexer_next(Lexer* self) {
                      goto default_trim;
                } break;
 
+               case '"': {
+                  token.str_literal = (StringView) {
+                     .chars = self->file_contents + (self->z - 1),
+                     .length = 0
+                  };
+                  mode = LM_StrLiteral;
+               } break;
+
                case ' ': break;
                case '\t': break;
                case '\n': break;
@@ -206,6 +215,16 @@ Token Lexer_next(Lexer* self) {
                if (num_is_negative)
                   token.int_literal = -token.int_literal;
                
+               return token;
+            }
+         } continue;
+
+         case LM_StrLiteral: {
+            token.str_literal.length++;
+
+            if (self->peek == '"') {
+               Lexer_advance(self);
+               token.type = TT_StrLiteral;
                return token;
             }
          } continue;

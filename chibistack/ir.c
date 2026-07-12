@@ -10,13 +10,15 @@
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {
-      case IIK_PushInt: return "PushInt";
-      case IIK_Add:     return "Add";
-      case IIK_Sub:     return "Sub";
-      case IIK_Idiv:    return "Idiv";
-      case IIK_Udiv:    return "Udiv";
-      case IIK_Mul:     return "Mul";
-      case IIK_Puti:    return "Puti";
+      case IIK_PushInt:  return "PushInt";
+      case IIK_PushUint: return "PushUint";
+      case IIK_PushAddr: return "PushAddr";
+      case IIK_Add:      return "Add";
+      case IIK_Sub:      return "Sub";
+      case IIK_Idiv:     return "Idiv";
+      case IIK_Udiv:     return "Udiv";
+      case IIK_Mul:      return "Mul";
+      case IIK_Puti:     return "Puti";
    }
 
    return "Unknown";
@@ -27,7 +29,8 @@ IR IR_from_file(cstr file) {
 
    IR self = {
       .Lexers = Vector_new(sizeof(Lexer)),
-      .IrInstructions = Vector_new(sizeof(IrInstr))
+      .IrInstructions = Vector_new(sizeof(IrInstr)),
+      .string_literals = Vector_new(sizeof(StringView))
    };
 
    Vector_push_create(&self.Lexers, (Lexer_new(file)));
@@ -46,6 +49,18 @@ IR IR_from_file(cstr file) {
             instr.kind = IIK_PushInt;
             instr.int_value = token.int_literal;
             Vector_push(&self.IrInstructions, &instr);
+         } continue;
+
+         case TT_StrLiteral: {
+            instr.kind = IIK_PushUint;
+            instr.uint_value = token.str_literal.length;
+            Vector_push(&self.IrInstructions, &instr);
+
+            instr.kind = IIK_PushAddr;
+            instr.uint_value = self.string_literals.length;
+            Vector_push(&self.IrInstructions, &instr);
+
+            Vector_push(&self.string_literals, &token.str_literal);
          } continue;
 
          case TT_Add:  { instr.kind = IIK_Add;  Vector_push(&self.IrInstructions, &instr); } continue;
@@ -76,6 +91,7 @@ void IR_delete(IR* self) {
    }
 
    Vector_free(&self->Lexers);
+   Vector_free(&self->string_literals);
    Vector_free(&self->IrInstructions);
    *self = (IR) {0};
 }

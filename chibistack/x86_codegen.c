@@ -170,6 +170,10 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "   mov rbp, rsp\n");
 
    u32 stack_element_count = 0;
+
+   // @Todo: I don't think the push instruction supports 64 Bit immediates
+   //        We may have to move a literal to a registers first before pushing it onto the stack
+   //        -yuumei-02, 12-07-2026 18:44
    
    foreach (ir->IrInstructions, i) {
       IrInstr* instr = Vector_get(&ir->IrInstructions, i);
@@ -179,6 +183,19 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
          case IIK_PushInt: {
             stack_element_count++;
             outwrite(handle, "   push %ld\n", instr->int_value);
+         } continue;
+
+         case IIK_PushUint: {
+            stack_element_count++;
+            outwrite(handle, "   push %lu\n", instr->uint_value);
+         } continue;
+
+         case IIK_PushAddr: {
+            stack_element_count++;
+            outwrite(handle,
+               "   mov rax, addr%lu\n"
+               "   push rax\n",
+               instr->uint_value);
          } continue;
 
          case IIK_Sub:  [[fallthrough]];
@@ -228,7 +245,16 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
    outwrite(handle,
       "   mov rsp, rbp\n"
       "   pop rbp\n"
-      "   ret\n");
+      "   ret\n"
+      "\n");
+
+   outwrite(handle, "section .data\n");
+
+   foreach (ir->string_literals, i) {
+      StringView* str = Vector_get(&ir->string_literals, i);
+      outwrite(handle, "addr%zu: db \"%.*s\"", i, (i32) str->length, str->chars);
+   }
+   
    close_file_handle(handle, asm_dump);
 
    if (execute_command("nasm -felf64 ./output.asm"))  return 1;

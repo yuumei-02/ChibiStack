@@ -19,6 +19,7 @@ typedef enum : i32 {
 
    TT_Word,
    TT_IntLiteral,
+   TT_StrLiteral,
 
    // Temporary instrinsic procedure
    TT_Puti
@@ -38,6 +39,7 @@ typedef enum {
    LM_Trim,
    LM_Word,
    LM_IntLiteral,
+   LM_StrLiteral,
    LM_Comment
 } LexerMode;
 

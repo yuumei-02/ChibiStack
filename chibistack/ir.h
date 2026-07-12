@@ -5,6 +5,8 @@
 
 typedef enum : u16 {
    IIK_PushInt,
+   IIK_PushUint,
+   IIK_PushAddr,
 
    IIK_Add,
    IIK_Sub,
@@ -29,6 +31,7 @@ typedef struct {
 typedef struct {
    Vector Lexers;
    Vector IrInstructions;
+   Vector string_literals;
 } IR;
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self);
