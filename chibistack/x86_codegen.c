@@ -86,8 +86,11 @@ static void outwrite(FILE* handle, const cstr format, ...) {
 i32 nasm_from_ir(IR* ir, bool asm_dump) {
    mcu_assert(ir != nullptr, "ir can't be null");
 
+   // @Todo: Look into whether or not we should use DEFAULT REL for our NASM generation
+   //        - Yuumei-02, 12-07-2026 15:32
    FILE* handle = get_file_handle(asm_dump);
    outwrite(handle,
+      "BITS 64\n"
       "global _start\n"
       "section .text\n"
       "\n"
@@ -99,7 +102,56 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "\n"
       "main:\n");
 
-   // @Todo: Convert IR to asm here
+   foreach (ir->IrInstructions, i) {
+      IrInstr* instr = Vector_get(&ir->IrInstructions, i);
+      outwrite(handle, "   ; %s\n", IrInstrKind_to_cstr(instr->kind));
+
+      switch (instr->kind) {
+         case IIK_PushInt: {
+            outwrite(handle, "   push %ld\n", instr->int_value);
+         } continue;
+
+         case IIK_Sub:  [[fallthrough]];
+         case IIK_Add:  [[fallthrough]];
+         case IIK_Idiv: [[fallthrough]];
+         case IIK_Imul: [[fallthrough]];
+         case IIK_Udiv: [[fallthrough]];
+         case IIK_Umul: {
+            outwrite(handle,
+               "   pop rbx\n"
+               "   pop rax\n");
+            switch (instr->kind) {
+               case IIK_Add:  outwrite(handle, "   add rax, rbx\n");  break;
+               case IIK_Sub:  outwrite(handle, "   sub rax, rbx\n");  break;
+               case IIK_Imul: [[fallthrough]];
+               case IIK_Umul: outwrite(handle, "   imul rax, rbx\n"); break;
+               
+               case IIK_Idiv: {
+                  outwrite(handle,
+                     "   cqo\n"
+                     "   idiv rbx\n");
+               } break;
+
+               case IIK_Udiv: {
+                  outwrite(handle,
+                     "   xor rdx, rdx\n"
+                     "   div rbx\n");
+               } break;
+               
+               default: panic("unreachable");
+            }
+            outwrite(handle, "   push rax\n");
+         } continue;
+
+         case IIK_Puti: {
+            outwrite(handle,
+               "   ; not yet implemented\n"
+               "   pop rax\n");
+         } continue;
+      }
+
+      panic("unreachable");
+   }
       
    outwrite(handle, "   ret\n");
    close_file_handle(handle, asm_dump);
