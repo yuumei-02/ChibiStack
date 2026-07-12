@@ -194,6 +194,30 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                "   ret\n"
                "\n");
          } continue;
+
+         // @Todo: Add support for passing arguments.
+         case IIK_ProcCall: {
+            if (stack_element_count > 0 && stack_element_count % 2 == 1) {
+               outwrite(handle,
+                  "   sub rsp, 8\n"
+                  "   call %.*s\n"
+                  "   add rsp, 8\n",
+                  (i32) instr->word.length, instr->word.chars);
+            } else {
+               outwrite(handle,
+                  "   call %.*s\n",
+                  (i32) instr->word.length, instr->word.chars);
+            }
+         } continue;
+
+         case IIK_Puti: {
+            stack_element_count--;
+            outwrite(handle, "   pop rdi\n");
+            bool misaligned = stack_element_count > 0 && stack_element_count % 2 == 1;
+            if (misaligned) outwrite(handle, "   sub rsp, 8\n");
+            outwrite(handle, "   call puti\n");
+            if (misaligned) outwrite(handle, "   add rsp, 8\n");
+         } continue;
       
          case IIK_PushInt: {
             stack_element_count++;
@@ -298,15 +322,6 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
             outwrite(handle,
                "   syscall\n"
                "   push rax\n");
-         } continue;
-
-         case IIK_Puti: {
-            stack_element_count--;
-            outwrite(handle, "   pop rdi\n");
-            bool misaligned = stack_element_count > 0 && stack_element_count % 2 == 1;
-            if (misaligned) outwrite(handle, "   sub rsp, 8\n");
-            outwrite(handle, "   call puti\n");
-            if (misaligned) outwrite(handle, "   add rsp, 8\n");
          } continue;
       }
 

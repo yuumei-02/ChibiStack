@@ -28,6 +28,7 @@ typedef enum : u16 {
 
    IIK_ProcBegin,
    IIK_ProcEnd,
+   IIK_ProcCall,
 
    IIK_Puti
 } IrInstrKind;

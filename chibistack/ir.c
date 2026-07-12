@@ -31,6 +31,7 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_Syscall6:  return "Syscall6";
       case IIK_ProcBegin: return "ProcBegin";
       case IIK_ProcEnd:   return "ProcEnd";
+      case IIK_ProcCall:  return "ProcCall";
       case IIK_Puti:      return "Puti";
    }
 
@@ -108,6 +109,13 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
          case TT_Syscall6: push_instr(IIK_Syscall6) break;
 
          case TT_Puti: push_instr(IIK_Puti) break;
+
+         // @Todo: Once we implement symbol tables and scopes,
+         //        check whether or not the word exist and report an error if not.
+         case TT_Word: {
+            instr.word = token.str_view;
+            push_instr(IIK_ProcCall)
+         } break;
 
          case TT_Eof: {
             if (state->panic) return token.z;
