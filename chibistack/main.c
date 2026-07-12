@@ -10,38 +10,68 @@
 #include "ir.h"
 #include "x86_codegen.h"
 
-void token_dump(cstr file) {
+double token_dump(cstr file) {
    Lexer lexer = Lexer_new(file);
    Token token;
+   double lexer_time = 0.0f;
+   
    do {
-      token = Lexer_next(&lexer);
+      token = Lexer_next(&lexer, &lexer_time);
       Token_dump(token, &lexer);
    } while (token.type != TT_Eof);
    
    Lexer_delete(&lexer);
+   return lexer_time;
 }
 
 i32 compile(cstr file, CompileFlags flags) {
    mcu_assert(file != nullptr, "file can't be null");
 
+   bool failure;
+   double lexer_time = 0.0f;
+   double ir_time = 0.0f;
+   double code_gen_time = 0.0f;
+   double linker_time = 0.0f;
+   
    if (flags.token_dump) {
-      token_dump(file);
-      return 0;
+      lexer_time = token_dump(file);
+      failure = false;
+      goto statistics;
    }
 
-   bool failure;
-   IR ir = IR_from_file(file, &failure);
-   if (failure) return failure;
-   
+   IR ir = IR_from_file(file, &failure, &ir_time, &lexer_time);
+   if (failure) goto failure;
    if (flags.ir_dump) {
       IR_dump(&ir);
-      IR_delete(&ir);
-      return 0;
+      goto success;
    }
 
-   i32 result = nasm_from_ir(&ir, flags.asm_dump);
+   if (nasm_from_ir(&ir, flags.asm_dump, &code_gen_time, &linker_time)) goto failure;
+   
+success:
+   failure = false;
+   goto cleanup;
+failure:
+   failure = true;
+cleanup:
    IR_delete(&ir);
-   return result;
+statistics:
+   u32 tokens_parsed = get_tokens_parsed();
+   println("\nCompilation statistics");
+   println("------------------------------------");
+   println("Target : x86_64 Linux");
+   println("------------------------------------");
+   println("Tokens          : %.2lfm Tokens/s (%u tokens)", ((double) tokens_parsed / lexer_time) / 1'000'000.0f, tokens_parsed);
+   println("Lexer           : %.6lf seconds", lexer_time);
+   println("Parser & IR     : %.6lf seconds", ir_time - lexer_time);
+   println("Code generation : %.6lf seconds", code_gen_time);
+   println("Nasm & Linker   : %.6lf seconds", linker_time);
+   println("------------------------------------");
+   println(failure == false
+      ? "Compilation succeeded\n"
+      : "Compilation failure\n");
+   
+   return failure;
 }
 
 i32 main(i32 argc, cstr argv[]) {

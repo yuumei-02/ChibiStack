@@ -3,5 +3,8 @@
 
 #pragma once
 
-i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_time);
+#include <time.h>
+
+void clock_start(struct timespec* timer);
+double clock_end(struct timespec* timer);
 

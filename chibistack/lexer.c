@@ -10,12 +10,15 @@
 #include <string.h>
 
 #include "lexer.h"
+#include "timing.h"
 
 HashMap_hdr(TokenType)
 HashMap_impl(TokenType)
 
 static HashMap(TokenType) G_keywords;
 static bool G_keywords_defined = false;
+
+static u32 tokens_parsed = 0;
 
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
@@ -144,9 +147,8 @@ static bool word_allowed(char c) {
    );
 }
 
-Token Lexer_next(Lexer* self) {
-   mcu_assert(self != nullptr, "self can't be null");
-
+[[gnu::always_inline]]
+static inline Token Lexer_next_impl(Lexer* self) { 
    Token token = {
       .type = TT_Eof,
       .z = self->z
@@ -288,6 +290,24 @@ Token Lexer_next(Lexer* self) {
    }
 
    return token;
+}
+
+Token Lexer_next(Lexer* self, double* lexer_time) {
+   mcu_assert(self != nullptr, "self can't be null");
+   mcu_assert(lexer_time != nullptr, "lexer_time can't be null");
+
+   struct timespec timer;
+
+   tokens_parsed += 1;
+   clock_start(&timer);
+   Token token = Lexer_next_impl(self);
+   *lexer_time += clock_end(&timer);
+
+   return token;
+}
+
+u32 get_tokens_parsed() {
+   return tokens_parsed;
 }
 
 Loc Lexer_loc_from_offset(Lexer* self, u32 offset) {

@@ -72,8 +72,10 @@ typedef struct {
 Lexer Lexer_new(cstr file_path);
 void Lexer_delete(Lexer* self);
 
-Token Lexer_next(Lexer* self);
+Token Lexer_next(Lexer* self, double* lexer_time);
 Loc Lexer_loc_from_offset(Lexer* self, u32 offset);
+
+u32 get_tokens_parsed();
 
 void Token_dump(Token self, Lexer* lexer);
 

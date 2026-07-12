@@ -12,6 +12,7 @@
 #include "lexer.h"
 #include "ir.h"
 #include "x86_codegen.h"
+#include "timing.h"
 
 #define execute_command(format, ...) \
    execute_command_impl(true, false, format __VA_OPT__(,) __VA_ARGS__)
@@ -83,8 +84,13 @@ static void outwrite(FILE* handle, const cstr format, ...) {
    va_end(args);
 }
 
-i32 nasm_from_ir(IR* ir, bool asm_dump) {
+i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_time) {
    mcu_assert(ir != nullptr, "ir can't be null");
+   mcu_assert(code_gen_time != nullptr, "code_gen_time can't be null");
+   mcu_assert(linker_time != nullptr, "linker_time can't be null");
+
+   struct timespec timer;
+   clock_start(&timer);
 
    // @Todo: Look into whether or not we should use DEFAULT REL for our NASM generation
    //        - Yuumei-02, 12-07-2026 15:32
@@ -326,10 +332,18 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
    }
    
    close_file_handle(handle, asm_dump);
+   *code_gen_time = clock_end(&timer);
 
-   if (execute_command("nasm -felf64 ./output.asm"))  return 1;
-   if (execute_command("ld ./output.o -o ./output"))  return 1;
-   if (execute_command("rm ./output.asm ./output.o")) return 1;
+   clock_start(&timer);
+   if (execute_command("nasm -felf64 ./output.asm"))  goto failure;
+   if (execute_command("ld ./output.o -o ./output"))  goto failure;
+   if (execute_command("rm ./output.asm ./output.o")) goto failure;
+   *linker_time = clock_end(&timer);
+
    return 0;
+
+failure:
+   *linker_time = clock_end(&timer);
+   return 1;
 }
 

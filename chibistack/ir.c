@@ -7,6 +7,7 @@
 
 #include "lexer.h"
 #include "ir.h"
+#include "timing.h"
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {
@@ -39,6 +40,7 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
 typedef struct {
    bool panic;
    bool failure;
+   double* lexer_time;
 } ParsingState;
 
 static inline void enter_panic(ParsingState* state) {
@@ -58,7 +60,7 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    }
 
    loop {
-      Token token = Lexer_next(lexer);
+      Token token = Lexer_next(lexer, state->lexer_time);
       IrInstr instr = {
          .z = token.z,
          .lexer = lexer_i
@@ -129,7 +131,7 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 }
 
 static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
-   Token token = Lexer_next(lexer);
+   Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
       Loc loc = Lexer_loc_from_offset(lexer, token.z);
       eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Word\"",
@@ -140,7 +142,7 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 
    StringView name = token.str_view;
 
-   token = Lexer_next(lexer);
+   token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Begin) {
       Loc loc = Lexer_loc_from_offset(lexer, token.z);
       eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Begin\"",
@@ -160,9 +162,14 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    }));
 }
 
-IR IR_from_file(cstr file, bool* failure) {
+IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
    mcu_assert(file != nullptr, "file can't be null");
    mcu_assert(failure != nullptr, "failure can't be null");
+   mcu_assert(ir_time != nullptr, "ir_time can't be null");
+   mcu_assert(lexer_time != nullptr, "lexer_time can't be null");
+
+   struct timespec timer;
+   clock_start(&timer);
 
    IR self = {
       .Lexers = Vector_new(sizeof(Lexer)),
@@ -173,10 +180,10 @@ IR IR_from_file(cstr file, bool* failure) {
    Vector_push_create(&self.Lexers, (Lexer_new(file)));
    u32 lexer_i = (u32) (self.Lexers.length - 1);
    Lexer* lexer = Vector_get(&self.Lexers, self.Lexers.length - 1);
-   ParsingState state = {0};
+   ParsingState state = { .lexer_time = lexer_time };
 
    loop {
-      Token token = Lexer_next(lexer);
+      Token token = Lexer_next(lexer, lexer_time);
 
       switch (token.type) {
          case TT_Proc: {
@@ -198,6 +205,7 @@ IR IR_from_file(cstr file, bool* failure) {
 
 finish_parsing:
    *failure = state.failure;
+   *ir_time = clock_end(&timer);
    return self;
 }
 
