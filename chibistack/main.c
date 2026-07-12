@@ -29,7 +29,10 @@ i32 compile(cstr file, CompileFlags flags) {
       return 0;
    }
 
-   IR ir = IR_from_file(file);
+   bool failure;
+   IR ir = IR_from_file(file, &failure);
+   if (failure) return failure;
+   
    if (flags.ir_dump) {
       IR_dump(&ir);
       IR_delete(&ir);

@@ -53,7 +53,7 @@ typedef struct {
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self);
 
-IR IR_from_file(cstr file);
+IR IR_from_file(cstr file, bool* failure);
 void IR_delete(IR* self);
 
 void IR_dump(IR* self);

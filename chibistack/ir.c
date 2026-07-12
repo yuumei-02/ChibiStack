@@ -160,8 +160,9 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    }));
 }
 
-IR IR_from_file(cstr file) {
+IR IR_from_file(cstr file, bool* failure) {
    mcu_assert(file != nullptr, "file can't be null");
+   mcu_assert(failure != nullptr, "failure can't be null");
 
    IR self = {
       .Lexers = Vector_new(sizeof(Lexer)),
@@ -196,6 +197,7 @@ IR IR_from_file(cstr file) {
    }
 
 finish_parsing:
+   *failure = state.failure;
    return self;
 }
 
