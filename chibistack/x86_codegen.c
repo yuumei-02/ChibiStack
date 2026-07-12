@@ -100,8 +100,77 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "   xor edi, edi\n"
       "   syscall\n"
       "\n"
-      "main:\n");
+      "puti:\n"
+      "   push rbp\n"
+      "   mov rbp, rsp\n"
+      "   sub rsp, 40\n"
+      "   mov [rbp-8], rdi\n"
+      "   xor eax, eax\n"
+      "   mov [rbp-12], eax\n"
+      "   mov [rbp-16], eax\n"
+      "   cmp qword [rbp-8], 0\n"
+      "   jns .check_zero\n"
+      "   mov byte [rbp-32], '-'\n"
+      "   inc dword [rbp-16]\n"
+      "   neg qword [rbp-8]\n"
+      "   mov dword [rbp-12], 1\n"
+      "   jmp .extract_loop\n"
+      ".check_zero:\n"
+      "   cmp qword [rbp-8], 0\n"
+      "   jne .extract_loop\n"
+      "   mov byte [rbp-32], '0'\n"
+      "   inc dword [rbp-16]\n"
+      "   jmp .prepare_reverse\n"
+      ".extract_loop:\n"
+      "   cmp qword [rbp-8], 0\n"
+      "   jle .prepare_reverse\n"
+      "   mov rax, [rbp-8]\n"
+      "   xor rdx, rdx\n"
+      "   mov rcx, 10\n"
+      "   div rcx\n"
+      "   mov [rbp-8], rax\n"
+      "   mov eax, edx\n"
+      "   add al, '0'\n"
+      "   mov ecx, [rbp-16]\n"
+      "   mov [rbp-32+rcx], al\n"
+      "   inc dword [rbp-16]\n"
+      "   jmp .extract_loop\n"
+      ".prepare_reverse:\n"
+      "   mov eax, [rbp-16]\n"
+      "   mov [rbp-20], eax\n"
+      "   dec eax\n"
+      "   mov [rbp-16], eax\n"
+      ".reverse_loop:\n"
+      "   mov eax, [rbp-16]\n"
+      "   cmp eax, [rbp-12]\n"
+      "   jle .do_write\n"
+      "   mov ecx, [rbp-12]\n"
+      "   mov esi, [rbp-16]\n"
+      "   mov al, [rbp-32+rcx]\n"
+      "   mov bl, [rbp-32+rsi]\n"
+      "   mov [rbp-32+rcx], bl\n"
+      "   mov [rbp-32+rsi], al\n"
+      "   inc dword [rbp-12]\n"
+      "   dec dword [rbp-16]\n"
+      "   jmp .reverse_loop\n"
+      ".do_write:\n"
+      "   mov rax, 1\n"
+      "   mov rdi, 1\n"
+      "   lea rsi, [rbp-32]\n"
+      "   mov edx, [rbp-20]\n"
+      "   syscall\n"
+      "   leave\n"
+      "   ret\n"
+      "\n"
+      "main:\n"
+      "   push rbp\n"
+      "   mov rbp, rsp\n"
+      "   and rsp, -16\n");
 
+   // @Todo: The stack is not always 16 bit aligned which is needed for procedure calls.
+   //        Since we do stack operations with 8 byte values. If the stack has an odd number
+   //        off elements, we simply push an extra dummy value onto the stack and remove it
+   //        after the procedure call.
    foreach (ir->IrInstructions, i) {
       IrInstr* instr = Vector_get(&ir->IrInstructions, i);
       outwrite(handle, "   ; %s\n", IrInstrKind_to_cstr(instr->kind));
@@ -143,15 +212,18 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
 
          case IIK_Puti: {
             outwrite(handle,
-               "   ; not yet implemented\n"
-               "   pop rax\n");
+               "   pop rdi\n"
+               "   call puti\n");
          } continue;
       }
 
       panic("unreachable");
    }
       
-   outwrite(handle, "   ret\n");
+   outwrite(handle,
+      "   mov rsp, rbp\n"
+      "   pop rbp\n"
+      "   ret\n");
    close_file_handle(handle, asm_dump);
 
    if (execute_command("nasm -felf64 ./output.asm"))  return 1;
