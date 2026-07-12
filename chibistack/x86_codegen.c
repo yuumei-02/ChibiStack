@@ -178,7 +178,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       switch (instr->kind) {
          case IIK_PushInt: {
             stack_element_count++;
-            if (instr->int_value >= 0x80000000 && instr->int_value <= 0x7FFFFFFF) {
+            if (!(instr->int_value >= 0x80000000 && instr->int_value <= 0x7FFFFFFF)) {
                outwrite(handle, "   push %ld\n", instr->int_value);
             } else {
                outwrite(handle,
