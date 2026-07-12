@@ -13,6 +13,6 @@ Then run ```./vmake build``` and you're done. <br>
 # Roadmap
 [ ] Turing complete. <br>
 [ ] Statically typed. <br>
-[ ] Compiles down to a native executable. <br>
+[x] Compiles down to a native executable. <br>
 [ ] Standard library. <br>
 
