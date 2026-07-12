@@ -13,6 +13,9 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_PushInt:  return "PushInt";
       case IIK_PushUint: return "PushUint";
       case IIK_PushAddr: return "PushAddr";
+      case IIK_Drop:     return "Drop";
+      case IIK_Swap:     return "Swap";
+      case IIK_Dup:      return "Dup";
       case IIK_Add:      return "Add";
       case IIK_Sub:      return "Sub";
       case IIK_Idiv:     return "Idiv";
@@ -45,6 +48,11 @@ IR IR_from_file(cstr file) {
          .lexer = lexer_i
       };
 
+      #define push_instr(instruction_kind) { \
+         instr.kind = instruction_kind; \
+         Vector_push(&self.IrInstructions, &instr); \
+      }
+
       switch (token.type) {
          case TT_IntLiteral: {
             instr.kind = IIK_PushInt;
@@ -64,21 +72,26 @@ IR IR_from_file(cstr file) {
             Vector_push(&self.string_literals, &token.str_literal);
          } continue;
 
-         case TT_Add:  { instr.kind = IIK_Add;  Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Sub:  { instr.kind = IIK_Sub;  Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Idiv: { instr.kind = IIK_Idiv; Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Udiv: { instr.kind = IIK_Udiv; Vector_push(&self.IrInstructions, &instr); } continue;
-         case TT_Mul:  { instr.kind = IIK_Mul;  Vector_push(&self.IrInstructions, &instr); } continue;
+         case TT_Drop: push_instr(IIK_Drop) continue;
+         case TT_Swap: push_instr(IIK_Swap) continue;
+         case TT_Dup:  push_instr(IIK_Dup)  continue;
 
-         case TT_Syscall4: { instr.kind = IIK_Syscall4; Vector_push(&self.IrInstructions, &instr); } continue;
+         case TT_Add:  push_instr(IIK_Add)  continue;
+         case TT_Sub:  push_instr(IIK_Sub)  continue;
+         case TT_Idiv: push_instr(IIK_Idiv) continue;
+         case TT_Udiv: push_instr(IIK_Udiv) continue;
+         case TT_Mul:  push_instr(IIK_Mul)  continue;
 
-         case TT_Puti: { instr.kind = IIK_Puti; Vector_push(&self.IrInstructions, &instr); } continue;
+         case TT_Syscall4: push_instr(IIK_Syscall4) continue;
+
+         case TT_Puti: push_instr(IIK_Puti) continue;
 
          case TT_Word: mcu_todo("not yet implemented");
          case TT_Eof:  goto finish_parsing;
       }
 
       panic("unreachable");
+      #undef push_instr
    }
 
 finish_parsing:

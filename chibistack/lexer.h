@@ -10,6 +10,10 @@ typedef struct {
 
 typedef enum : i32 {
    TT_Eof,
+
+   TT_Drop,
+   TT_Swap,
+   TT_Dup,
    
    TT_Add,
    TT_Sub,

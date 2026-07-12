@@ -8,6 +8,10 @@ typedef enum : u16 {
    IIK_PushUint,
    IIK_PushAddr,
 
+   IIK_Drop,
+   IIK_Swap,
+   IIK_Dup,
+
    IIK_Add,
    IIK_Sub,
    IIK_Idiv,

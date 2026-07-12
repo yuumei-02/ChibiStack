@@ -208,6 +208,27 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
                instr->uint_value);
          } continue;
 
+         case IIK_Drop: {
+            stack_element_count--;
+            outwrite(handle, "   pop rax\n");
+         } continue;
+
+         case IIK_Swap: {
+            outwrite(handle,
+               "   pop rbx\n"
+               "   pop rax\n"
+               "   push rbx\n"
+               "   push rax\n");
+         } continue;
+
+         case IIK_Dup: {
+            stack_element_count++;
+            outwrite(handle,
+               "   pop rax\n"
+               "   push rax\n"
+               "   push rax\n");
+         } continue;
+
          case IIK_Sub:  [[fallthrough]];
          case IIK_Add:  [[fallthrough]];
          case IIK_Idiv: [[fallthrough]];
@@ -240,12 +261,14 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
          } continue;
 
          case IIK_Syscall4: {
+            stack_element_count -= 3;
             outwrite(handle,
                "   pop rax\n"
                "   pop rdi\n"
                "   pop rsi\n"
                "   pop rdx\n"
-               "   syscall\n");
+               "   syscall\n"
+               "   push rax\n");
          } continue;
 
          case IIK_Puti: {

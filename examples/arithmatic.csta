@@ -3,8 +3,8 @@
 
 "Zhyivannye miratte\n" 1 1 syscall4
 
-35 34 + puti "\n" 1 1 syscall4
-35 34 - puti "\n" 1 1 syscall4
-5  2  * puti "\n" 1 1 syscall4
+35 34 + puti    "\n" 1 1 syscall4
+35 34 - puti    "\n" 1 1 syscall4
+5  2  * puti    "\n" 1 1 syscall4
 6  2  idiv puti "\n" 1 1 syscall4
 

@@ -20,6 +20,9 @@ static bool G_keywords_defined = false;
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
       case TT_Eof:        return "Eof";
+      case TT_Drop:       return "Drop";
+      case TT_Swap:       return "Swap";
+      case TT_Dup:        return "Dup";
       case TT_Add:        return "Add";
       case TT_Sub:        return "Sub";
       case TT_Idiv:       return "Idiv";
@@ -41,6 +44,9 @@ static void check_define_keywords() {
    G_keywords_defined = true;
    G_keywords = HashMap_new(TokenType)();
 
+   HashMap_put(TokenType)(&G_keywords, "Drop",     TT_Drop);
+   HashMap_put(TokenType)(&G_keywords, "Swap",     TT_Swap);
+   HashMap_put(TokenType)(&G_keywords, "Dup",      TT_Dup);
    HashMap_put(TokenType)(&G_keywords, "idiv",     TT_Idiv);
    HashMap_put(TokenType)(&G_keywords, "udiv",     TT_Udiv);
    HashMap_put(TokenType)(&G_keywords, "syscall4", TT_Syscall4);
