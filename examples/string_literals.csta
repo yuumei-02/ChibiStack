@@ -3,4 +3,7 @@
 
 // String literals push 2 values onto the stack
 // Their length and then a pointer to their address
-"Zhyivannye miratte!\n" 1 1 syscall3 drop
+
+proc main begin
+   "Zhyivannye miratte!\n" 1 1 syscall3 drop
+end

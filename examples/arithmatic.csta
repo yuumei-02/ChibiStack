@@ -1,8 +1,10 @@
 // Copyright (c) 2026 yuumei-02. All Rights Reserved.
 // See the LICENSE file for more information.
 
-35 34 + puti    "\n" 1 1 syscall3 drop
-35 34 - puti    "\n" 1 1 syscall3 drop
-5  2  * puti    "\n" 1 1 syscall3 drop
-6  2  idiv puti "\n" 1 1 syscall3 drop
+proc main begin
+   35 34 + puti    "\n" 1 1 syscall3 drop
+   35 34 - puti    "\n" 1 1 syscall3 drop
+   5  2  * puti    "\n" 1 1 syscall3 drop
+   6  2  idiv puti "\n" 1 1 syscall3 drop
+end
 

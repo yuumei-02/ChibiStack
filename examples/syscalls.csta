@@ -11,5 +11,7 @@
 // Syscalls always return a result value which is why you see a drop at the end of each syscall.
 // The drop lets us ignore the result value from the syscall.
 
-"Invoke the write syscall!\n" 1 1 syscall3 drop
+proc main begin
+   "Invoke the write syscall!\n" 1 1 syscall3 drop
+end
 
