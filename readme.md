@@ -1,5 +1,5 @@
 # About
-Stacked is stack-based programming made for recreational purposes. <br>
+ChibiStack is stack-based programming made for recreational purposes. <br>
 
 # Dependencies
 Mektova-C-Utils: https://github.com/yuumei-02/Mektova-C-Utils <br>

@@ -7,9 +7,9 @@
 i32 main(i32 argc, cstr argv[]) {
    Vmake_go_rebuild_yourself(argc, argv);
 
-   ModuleId stacked = Module_new("stacked", "./stacked", MT_Executable);
+   ModuleId chibistack = Module_new("chibistack", "./chibistack", MT_Executable);
    BuildOptions build_options = BuildOptions_default_debug();
 
-   return Vmake_build(stacked, build_options);
+   return Vmake_build(chibistack, build_options);
 }
 
