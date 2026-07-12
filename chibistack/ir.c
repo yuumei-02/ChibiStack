@@ -21,7 +21,13 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_Idiv:     return "Idiv";
       case IIK_Udiv:     return "Udiv";
       case IIK_Mul:      return "Mul";
+      case IIK_Syscall0: return "Syscall0";
+      case IIK_Syscall1: return "Syscall1";
+      case IIK_Syscall2: return "Syscall2";
+      case IIK_Syscall3: return "Syscall3";
       case IIK_Syscall4: return "Syscall4";
+      case IIK_Syscall5: return "Syscall5";
+      case IIK_Syscall6: return "Syscall6";
       case IIK_Puti:     return "Puti";
    }
 
@@ -82,7 +88,13 @@ IR IR_from_file(cstr file) {
          case TT_Udiv: push_instr(IIK_Udiv) continue;
          case TT_Mul:  push_instr(IIK_Mul)  continue;
 
+         case TT_Syscall0: push_instr(IIK_Syscall0) continue;
+         case TT_Syscall1: push_instr(IIK_Syscall1) continue;
+         case TT_Syscall2: push_instr(IIK_Syscall2) continue;
+         case TT_Syscall3: push_instr(IIK_Syscall3) continue;
          case TT_Syscall4: push_instr(IIK_Syscall4) continue;
+         case TT_Syscall5: push_instr(IIK_Syscall5) continue;
+         case TT_Syscall6: push_instr(IIK_Syscall6) continue;
 
          case TT_Puti: push_instr(IIK_Puti) continue;
 

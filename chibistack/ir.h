@@ -18,7 +18,13 @@ typedef enum : u16 {
    IIK_Udiv,
    IIK_Mul,
 
+   IIK_Syscall0,
+   IIK_Syscall1,
+   IIK_Syscall2,
+   IIK_Syscall3,
    IIK_Syscall4,
+   IIK_Syscall5,
+   IIK_Syscall6,
 
    IIK_Puti
 } IrInstrKind;

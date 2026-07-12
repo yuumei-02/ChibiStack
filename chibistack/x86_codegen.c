@@ -260,13 +260,23 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
             outwrite(handle, "   push rax\n");
          } continue;
 
-         case IIK_Syscall4: {
-            stack_element_count -= 3;
+         case IIK_Syscall0: goto output_syscall;
+         case IIK_Syscall1: { stack_element_count -= 1; } goto output_syscall;
+         case IIK_Syscall2: { stack_element_count -= 2; } goto output_syscall;
+         case IIK_Syscall3: { stack_element_count -= 3; } goto output_syscall;
+         case IIK_Syscall4: { stack_element_count -= 4; } goto output_syscall;
+         case IIK_Syscall5: { stack_element_count -= 5; } goto output_syscall;
+         case IIK_Syscall6: {
+            stack_element_count -= 6;
+         output_syscall:
+            i32 args = ((i32) instr->kind - (i32) IIK_Syscall0) + 1;
+            static const cstr syscall_registers[7] = { "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9" };
+
+            for (i32 i = 0; i < args; ++i) {
+               outwrite(handle, "   pop %s\n", syscall_registers[i]);
+            }
+
             outwrite(handle,
-               "   pop rax\n"
-               "   pop rdi\n"
-               "   pop rsi\n"
-               "   pop rdx\n"
                "   syscall\n"
                "   push rax\n");
          } continue;

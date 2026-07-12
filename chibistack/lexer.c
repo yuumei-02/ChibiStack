@@ -31,7 +31,13 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_StrLiteral: return "StrLiteral";
+      case TT_Syscall0:   return "Syscall0";
+      case TT_Syscall1:   return "Syscall1";
+      case TT_Syscall2:   return "Syscall2";
+      case TT_Syscall3:   return "Syscall3";
       case TT_Syscall4:   return "Syscall4";
+      case TT_Syscall5:   return "Syscall5";
+      case TT_Syscall6:   return "Syscall6";
       case TT_Puti:       return "Puti";
    }
 
@@ -44,12 +50,18 @@ static void check_define_keywords() {
    G_keywords_defined = true;
    G_keywords = HashMap_new(TokenType)();
 
-   HashMap_put(TokenType)(&G_keywords, "Drop",     TT_Drop);
-   HashMap_put(TokenType)(&G_keywords, "Swap",     TT_Swap);
-   HashMap_put(TokenType)(&G_keywords, "Dup",      TT_Dup);
+   HashMap_put(TokenType)(&G_keywords, "drop",     TT_Drop);
+   HashMap_put(TokenType)(&G_keywords, "swap",     TT_Swap);
+   HashMap_put(TokenType)(&G_keywords, "dup",      TT_Dup);
    HashMap_put(TokenType)(&G_keywords, "idiv",     TT_Idiv);
    HashMap_put(TokenType)(&G_keywords, "udiv",     TT_Udiv);
+   HashMap_put(TokenType)(&G_keywords, "syscall0", TT_Syscall0);
+   HashMap_put(TokenType)(&G_keywords, "syscall1", TT_Syscall1);
+   HashMap_put(TokenType)(&G_keywords, "syscall2", TT_Syscall2);
+   HashMap_put(TokenType)(&G_keywords, "syscall3", TT_Syscall3);
    HashMap_put(TokenType)(&G_keywords, "syscall4", TT_Syscall4);
+   HashMap_put(TokenType)(&G_keywords, "syscall5", TT_Syscall5);
+   HashMap_put(TokenType)(&G_keywords, "syscall6", TT_Syscall6);
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 

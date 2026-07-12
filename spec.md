@@ -35,7 +35,7 @@ More will be added as the compiler implements more features.
 * swap   Swap the top of the stack with the item before it
 
 ## Syscalls
-* syscall[0-6]   Perform a syscall with n number of arguments
+* syscall[0-6]   Perform a syscall with n number of arguments not including the syscall number
 
 # Types
 ## Build-in types

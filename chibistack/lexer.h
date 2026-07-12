@@ -25,7 +25,13 @@ typedef enum : i32 {
    TT_IntLiteral,
    TT_StrLiteral,
 
+   TT_Syscall0,
+   TT_Syscall1,
+   TT_Syscall2,
+   TT_Syscall3,
    TT_Syscall4,
+   TT_Syscall5,
+   TT_Syscall6,
 
    // Temporary instrinsic procedure
    TT_Puti
