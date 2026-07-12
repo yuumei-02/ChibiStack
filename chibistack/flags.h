@@ -6,6 +6,7 @@
 typedef struct {
    bool token_dump;
    bool ir_dump;
+   bool asm_dump;
 } CompileFlags;
 
 CompileFlags CompileFlags_default();

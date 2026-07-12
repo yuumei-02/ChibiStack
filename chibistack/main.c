@@ -8,6 +8,7 @@
 #include "flags.h"
 #include "lexer.h"
 #include "ir.h"
+#include "x86_codegen.h"
 
 void token_dump(cstr file) {
    Lexer lexer = Lexer_new(file);
@@ -35,6 +36,7 @@ void compile(cstr file, CompileFlags flags) {
       return;
    }
 
+   nasm_from_ir(&ir, flags.asm_dump);
    IR_delete(&ir);
 }
 
@@ -51,6 +53,7 @@ i32 main(i32 argc, cstr argv[]) {
       cstr_match(argv[i]) {
         ncstreq("--token-dump") flags.token_dump = true;
          cstreq("--ir-dump")    flags.ir_dump    = true;
+         cstreq("--asm-dump")   flags.asm_dump   = true;
          else {
             Vector_push(&files, &argv[i]);
          }
