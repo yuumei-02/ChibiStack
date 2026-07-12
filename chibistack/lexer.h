@@ -33,7 +33,11 @@ typedef enum : i32 {
    TT_Syscall5,
    TT_Syscall6,
 
-   // Temporary instrinsic procedure
+   TT_Proc,
+   TT_Begin,
+   TT_End,
+
+   // Temporary instrinsic procedures
    TT_Puti
 } TokenType;
 

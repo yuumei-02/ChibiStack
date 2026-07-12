@@ -26,13 +26,18 @@ typedef enum : u16 {
    IIK_Syscall5,
    IIK_Syscall6,
 
+   IIK_ProcBegin,
+   IIK_ProcEnd,
+
    IIK_Puti
 } IrInstrKind;
 
+// @Todo: Create a proper symbol table so that you can keep the IrInstr struct small.
 typedef struct {
    union {
       i64 int_value;
       u64 uint_value;
+      StringView word;    // Ouch! This is a nasty alignment penalty.
    };
 
    u32 z;

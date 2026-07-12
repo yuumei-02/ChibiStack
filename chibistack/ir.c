@@ -10,28 +10,154 @@
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {
-      case IIK_PushInt:  return "PushInt";
-      case IIK_PushUint: return "PushUint";
-      case IIK_PushAddr: return "PushAddr";
-      case IIK_Drop:     return "Drop";
-      case IIK_Swap:     return "Swap";
-      case IIK_Dup:      return "Dup";
-      case IIK_Add:      return "Add";
-      case IIK_Sub:      return "Sub";
-      case IIK_Idiv:     return "Idiv";
-      case IIK_Udiv:     return "Udiv";
-      case IIK_Mul:      return "Mul";
-      case IIK_Syscall0: return "Syscall0";
-      case IIK_Syscall1: return "Syscall1";
-      case IIK_Syscall2: return "Syscall2";
-      case IIK_Syscall3: return "Syscall3";
-      case IIK_Syscall4: return "Syscall4";
-      case IIK_Syscall5: return "Syscall5";
-      case IIK_Syscall6: return "Syscall6";
-      case IIK_Puti:     return "Puti";
+      case IIK_PushInt:   return "PushInt";
+      case IIK_PushUint:  return "PushUint";
+      case IIK_PushAddr:  return "PushAddr";
+      case IIK_Drop:      return "Drop";
+      case IIK_Swap:      return "Swap";
+      case IIK_Dup:       return "Dup";
+      case IIK_Add:       return "Add";
+      case IIK_Sub:       return "Sub";
+      case IIK_Idiv:      return "Idiv";
+      case IIK_Udiv:      return "Udiv";
+      case IIK_Mul:       return "Mul";
+      case IIK_Syscall0:  return "Syscall0";
+      case IIK_Syscall1:  return "Syscall1";
+      case IIK_Syscall2:  return "Syscall2";
+      case IIK_Syscall3:  return "Syscall3";
+      case IIK_Syscall4:  return "Syscall4";
+      case IIK_Syscall5:  return "Syscall5";
+      case IIK_Syscall6:  return "Syscall6";
+      case IIK_ProcBegin: return "ProcBegin";
+      case IIK_ProcEnd:   return "ProcEnd";
+      case IIK_Puti:      return "Puti";
    }
 
    return "Unknown";
+}
+
+typedef struct {
+   bool panic;
+   bool failure;
+} ParsingState;
+
+static inline void enter_panic(ParsingState* state) {
+   state->panic = true;
+   state->failure = true;
+}
+
+static inline void exit_panic(ParsingState* state) {
+   state->panic = false;
+}
+
+static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
+   #define push_instr(instruction_kind) { \
+      exit_panic(state); \
+      instr.kind = instruction_kind; \
+      Vector_push(&ir->IrInstructions, &instr); \
+   }
+
+   loop {
+      Token token = Lexer_next(lexer);
+      IrInstr instr = {
+         .z = token.z,
+         .lexer = lexer_i
+      };
+
+      switch (token.type) {
+         case TT_End: exit_panic(state); return token.z;
+      
+         case TT_IntLiteral: {
+            exit_panic(state);
+            instr.kind = IIK_PushInt;
+            instr.int_value = token.int_literal;
+            Vector_push(&ir->IrInstructions, &instr);
+         } break;
+
+         case TT_StrLiteral: {
+            exit_panic(state);
+            instr.kind = IIK_PushUint;
+            instr.uint_value = token.str_literal.length;
+            Vector_push(&ir->IrInstructions, &instr);
+
+            instr.kind = IIK_PushAddr;
+            instr.uint_value = ir->string_literals.length;
+            Vector_push(&ir->IrInstructions, &instr);
+
+            Vector_push(&ir->string_literals, &token.str_literal);
+         } break;
+
+         case TT_Drop: push_instr(IIK_Drop) break;
+         case TT_Swap: push_instr(IIK_Swap) break;
+         case TT_Dup:  push_instr(IIK_Dup)  break;
+
+         case TT_Add:  push_instr(IIK_Add)  break;
+         case TT_Sub:  push_instr(IIK_Sub)  break;
+         case TT_Idiv: push_instr(IIK_Idiv) break;
+         case TT_Udiv: push_instr(IIK_Udiv) break;
+         case TT_Mul:  push_instr(IIK_Mul)  break;
+
+         case TT_Syscall0: push_instr(IIK_Syscall0) break;
+         case TT_Syscall1: push_instr(IIK_Syscall1) break;
+         case TT_Syscall2: push_instr(IIK_Syscall2) break;
+         case TT_Syscall3: push_instr(IIK_Syscall3) break;
+         case TT_Syscall4: push_instr(IIK_Syscall4) break;
+         case TT_Syscall5: push_instr(IIK_Syscall5) break;
+         case TT_Syscall6: push_instr(IIK_Syscall6) break;
+
+         case TT_Puti: push_instr(IIK_Puti) break;
+
+         case TT_Eof: {
+            if (state->panic) return token.z;
+            Loc loc = Lexer_loc_from_offset(lexer, token.z);
+            eprintln("%s:%u:%u: error: Unexpected token \"Eof\"",
+               lexer->file_path, loc.y, loc.x);
+            enter_panic(state);
+         } return token.z;
+
+         default: {
+            if (state->panic) break;
+            Loc loc = Lexer_loc_from_offset(lexer, token.z);
+            eprintln("%s:%u:%u: error: Unexpected token \"%s\"",
+               lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+            enter_panic(state);
+         } break;
+      }
+   }
+
+   #undef push_instr
+}
+
+static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
+   Token token = Lexer_next(lexer);
+   if (token.type != TT_Word) {
+      Loc loc = Lexer_loc_from_offset(lexer, token.z);
+      eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Word\"",
+         lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+      enter_panic(state);
+      return;
+   }
+
+   StringView name = token.str_view;
+
+   token = Lexer_next(lexer);
+   if (token.type != TT_Begin) {
+      Loc loc = Lexer_loc_from_offset(lexer, token.z);
+      eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Begin\"",
+         lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+      enter_panic(state);
+      return;
+   }
+
+   Vector_push_create(&ir->IrInstructions, ((IrInstr) {
+      .kind = IIK_ProcBegin,
+      .z = token.z,
+      .word = name
+   }));
+   Vector_push_create(&ir->IrInstructions, ((IrInstr) {
+      .kind = IIK_ProcEnd,
+      .z = parse_code_block(ir, lexer, lexer_i, state)
+   }));
 }
 
 IR IR_from_file(cstr file) {
@@ -46,64 +172,27 @@ IR IR_from_file(cstr file) {
    Vector_push_create(&self.Lexers, (Lexer_new(file)));
    u32 lexer_i = (u32) (self.Lexers.length - 1);
    Lexer* lexer = Vector_get(&self.Lexers, self.Lexers.length - 1);
+   ParsingState state = {0};
 
    loop {
       Token token = Lexer_next(lexer);
-      IrInstr instr = {
-         .z = token.z,
-         .lexer = lexer_i
-      };
-
-      #define push_instr(instruction_kind) { \
-         instr.kind = instruction_kind; \
-         Vector_push(&self.IrInstructions, &instr); \
-      }
 
       switch (token.type) {
-         case TT_IntLiteral: {
-            instr.kind = IIK_PushInt;
-            instr.int_value = token.int_literal;
-            Vector_push(&self.IrInstructions, &instr);
-         } continue;
-
-         case TT_StrLiteral: {
-            instr.kind = IIK_PushUint;
-            instr.uint_value = token.str_literal.length;
-            Vector_push(&self.IrInstructions, &instr);
-
-            instr.kind = IIK_PushAddr;
-            instr.uint_value = self.string_literals.length;
-            Vector_push(&self.IrInstructions, &instr);
-
-            Vector_push(&self.string_literals, &token.str_literal);
-         } continue;
-
-         case TT_Drop: push_instr(IIK_Drop) continue;
-         case TT_Swap: push_instr(IIK_Swap) continue;
-         case TT_Dup:  push_instr(IIK_Dup)  continue;
-
-         case TT_Add:  push_instr(IIK_Add)  continue;
-         case TT_Sub:  push_instr(IIK_Sub)  continue;
-         case TT_Idiv: push_instr(IIK_Idiv) continue;
-         case TT_Udiv: push_instr(IIK_Udiv) continue;
-         case TT_Mul:  push_instr(IIK_Mul)  continue;
-
-         case TT_Syscall0: push_instr(IIK_Syscall0) continue;
-         case TT_Syscall1: push_instr(IIK_Syscall1) continue;
-         case TT_Syscall2: push_instr(IIK_Syscall2) continue;
-         case TT_Syscall3: push_instr(IIK_Syscall3) continue;
-         case TT_Syscall4: push_instr(IIK_Syscall4) continue;
-         case TT_Syscall5: push_instr(IIK_Syscall5) continue;
-         case TT_Syscall6: push_instr(IIK_Syscall6) continue;
-
-         case TT_Puti: push_instr(IIK_Puti) continue;
-
-         case TT_Word: mcu_todo("not yet implemented");
-         case TT_Eof:  goto finish_parsing;
+         case TT_Proc: {
+            state.panic = false;
+            parse_procedure(&self, lexer, lexer_i, &state);
+         } break;
+      
+         case TT_Eof: goto finish_parsing;
+         default: {
+            if (state.panic) break;
+            Loc loc = Lexer_loc_from_offset(lexer, token.z);
+            eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected token \"proc\"",
+               lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+            state.panic = true;
+            state.failure = true;
+         }
       }
-
-      panic("unreachable");
-      #undef push_instr
    }
 
 finish_parsing:

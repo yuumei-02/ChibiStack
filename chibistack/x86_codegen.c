@@ -164,10 +164,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       "   syscall\n"
       "   leave\n"
       "   ret\n"
-      "\n"
-      "main:\n"
-      "   push rbp\n"
-      "   mov rbp, rsp\n");
+      "\n");
 
    u32 stack_element_count = 0;
    
@@ -176,6 +173,22 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
       outwrite(handle, "   ; %s\n", IrInstrKind_to_cstr(instr->kind));
 
       switch (instr->kind) {
+         case IIK_ProcBegin: {
+            outwrite(handle,
+               "%.*s:\n"
+               "   push rbp\n"
+               "   mov rbp, rsp\n",
+               (i32) instr->word.length, instr->word.chars);
+         } continue;
+
+         case IIK_ProcEnd: {
+            outwrite(handle,
+               "   mov rsp, rbp\n"
+               "   pop rbp\n"
+               "   ret\n"
+               "\n");
+         } continue;
+      
          case IIK_PushInt: {
             stack_element_count++;
             if (!(instr->int_value >= 0x80000000 && instr->int_value <= 0x7FFFFFFF)) {
@@ -293,12 +306,6 @@ i32 nasm_from_ir(IR* ir, bool asm_dump) {
 
       panic("unreachable");
    }
-      
-   outwrite(handle,
-      "   mov rsp, rbp\n"
-      "   pop rbp\n"
-      "   ret\n"
-      "\n");
 
    outwrite(handle, "section .data\n");
 

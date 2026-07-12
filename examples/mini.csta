@@ -4,5 +4,13 @@
 // This file is not an example but rather a testing ground
 // for developing the compiler.
 
-"Zhyivannye miratte!\n" 1 1 syscall3 drop
+proc add begin
+   35 34 + puti
+   "\n" 1 1 syscall3
+   drop
+end
+
+proc main begin
+   "Zhyivannye miratte!\n" 1 1 syscall3 drop
+end
 
