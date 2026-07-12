@@ -28,7 +28,7 @@ typedef struct {
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self);
 
-IR IR_from_token_stream(Lexer* lexer);
+IR IR_from_file(cstr file);
 void IR_delete(IR* self);
 
 void IR_dump(IR* self);

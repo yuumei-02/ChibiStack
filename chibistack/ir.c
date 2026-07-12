@@ -8,10 +8,45 @@
 #include "lexer.h"
 #include "ir.h"
 
-const cstr IrInstrKind_to_cstr(IrInstrKind self);
+const cstr IrInstrKind_to_cstr(IrInstrKind self) {
+   switch (self) {
+      case IIK_Push: return "Push";
+      case IIK_Add:  return "Add";
+      case IIK_Sub:  return "Sub";
+      case IIK_Idiv: return "Idiv";
+      case IIK_Imul: return "Imul";
+      case IIK_Udiv: return "Udiv";
+      case IIK_Umul: return "Umul";
+      case IIK_Puti: return "Puti";
+   }
 
-IR IR_from_token_stream(Lexer* lexer);
-void IR_delete(IR* self);
+   return "Unknown";
+}
 
-void IR_dump(IR* self);
+IR IR_from_file(cstr file) {
+   mcu_assert(file != nullptr, "file can't be null");
+
+   IR self = {
+      .IrInstructions = Vector_new(sizeof(IrInstr))
+   };
+
+   return self;
+}
+
+void IR_delete(IR* self) {
+   mcu_assert(self != nullptr, "self can't be null");
+
+   Vector_free(&self->IrInstructions);
+   *self = (IR) {0};
+}
+
+void IR_dump(IR* self) {
+   mcu_assert(self != nullptr, "self can't be null");
+
+   // @todo: add location information
+   foreach (self->IrInstructions, i) {
+      IrInstr* instr = Vector_get(&self->IrInstructions, i);
+      println("%s", IrInstrKind_to_cstr(instr->kind));
+   }
+}
 
