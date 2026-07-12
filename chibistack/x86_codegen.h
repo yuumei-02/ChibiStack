@@ -3,5 +3,5 @@
 
 #pragma once
 
-void nasm_from_ir(IR* ir, bool asm_dump);
+i32 nasm_from_ir(IR* ir, bool asm_dump);
 

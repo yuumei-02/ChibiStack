@@ -21,23 +21,24 @@ void token_dump(cstr file) {
    Lexer_delete(&lexer);
 }
 
-void compile(cstr file, CompileFlags flags) {
+i32 compile(cstr file, CompileFlags flags) {
    mcu_assert(file != nullptr, "file can't be null");
 
    if (flags.token_dump) {
       token_dump(file);
-      return;
+      return 0;
    }
 
    IR ir = IR_from_file(file);
    if (flags.ir_dump) {
       IR_dump(&ir);
       IR_delete(&ir);
-      return;
+      return 0;
    }
 
-   nasm_from_ir(&ir, flags.asm_dump);
+   i32 result = nasm_from_ir(&ir, flags.asm_dump);
    IR_delete(&ir);
+   return result;
 }
 
 i32 main(i32 argc, cstr argv[]) {
@@ -62,7 +63,9 @@ i32 main(i32 argc, cstr argv[]) {
 
    foreach (files, i) {
       cstr* file = Vector_get(&files, i);
-      compile(*file, flags);
+      if (compile(*file, flags)) {
+         return 1;
+      }
    }
 
    Vector_free(&files);
