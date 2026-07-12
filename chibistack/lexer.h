@@ -3,6 +3,11 @@
 
 #pragma once
 
+typedef struct {
+   u32 x;
+   u32 y;
+} Loc;
+
 typedef enum : i32 {
    TT_Eof,
    
@@ -38,9 +43,9 @@ typedef enum {
 } LexerMode;
 
 typedef struct {
+   Vector new_line_indices;
    cstr file_path;
    cstr file_contents;
-
    u32 z;
    i32 current;
    i32 peek;
@@ -50,6 +55,7 @@ Lexer Lexer_new(cstr file_path);
 void Lexer_delete(Lexer* self);
 
 Token Lexer_next(Lexer* self);
+Loc Lexer_loc_from_offset(Lexer* self, u32 offset);
 
 void Token_dump(Token self, Lexer* lexer);
 

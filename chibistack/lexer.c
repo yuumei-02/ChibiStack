@@ -86,6 +86,7 @@ Lexer Lexer_new(cstr file_path) {
       eprintln("[!] Continuing...");
    }
 
+   self.new_line_indices = Vector_new(sizeof(u32));
    return self;
 
 read_failure:
@@ -95,11 +96,16 @@ read_failure:
 void Lexer_delete(Lexer* self) {
    mcu_assert(self != nullptr, "self can't be null");
 
+   Vector_free(&self->new_line_indices);
    mcu_free(self->file_contents);
    *self = (Lexer) {0};
 }
 
 static inline void Lexer_advance(Lexer* self) {
+   if (self->peek == '\n') {
+      Vector_push_create(&self->new_line_indices, ((u32) self->z - 1));
+   }
+
    self->current = self->peek;
    self->peek = self->file_contents[self->z++];
 }
@@ -218,11 +224,32 @@ Token Lexer_next(Lexer* self) {
    return token;
 }
 
+Loc Lexer_loc_from_offset(Lexer* self, u32 offset) {
+   mcu_assert(self != nullptr, "self can't be null");
+
+   Loc loc = { .x = offset, .y = 1 };
+   u32 subtract = 0;
+   
+   foreach (self->new_line_indices, i) {
+      u32 new_line = *(u32*) Vector_get(&self->new_line_indices, i);
+
+      if (new_line < offset) {
+         loc.y++;
+         subtract = new_line + 2;
+      } else {
+         break;
+      }
+   }
+
+   loc.x -= subtract;
+   return loc;
+}
+
 void Token_dump(Token self, Lexer* lexer) {
    mcu_assert(lexer != nullptr, "lexer can't be null");
 
-   // @Todo: Show the actual file location
-   printf("%s:1:1: info: %s", lexer->file_path, TokenType_to_cstr(self.type));
+   Loc loc = Lexer_loc_from_offset(lexer, self.z);
+   printf("%s:%u:%u: info: %s", lexer->file_path, loc.y, loc.x, TokenType_to_cstr(self.type));
 
    switch (self.type) {
       case TT_Word: {
