@@ -1,0 +1,77 @@
+// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// See the LICENSE file for more information.
+
+#pragma once
+
+typedef struct {
+   u32 x;
+   u32 y;
+} Loc;
+
+typedef enum : i32 {
+   TT_Eof,
+
+   TT_Drop,
+   TT_Swap,
+   TT_Dup,
+   
+   TT_Add,
+   TT_Sub,
+   TT_Idiv,
+   TT_Udiv,
+   TT_Mul,
+
+   TT_Word,
+   TT_IntLiteral,
+   TT_StrLiteral,
+
+   TT_Syscall0,
+   TT_Syscall1,
+   TT_Syscall2,
+   TT_Syscall3,
+   TT_Syscall4,
+   TT_Syscall5,
+   TT_Syscall6,
+
+   // Temporary instrinsic procedure
+   TT_Puti
+} TokenType;
+
+typedef struct {
+   TokenType type;
+   u32 z;
+
+   union {
+      i64 int_literal;
+      StringView str_view;
+      String str_literal;
+   };
+} Token;
+
+typedef enum {
+   LM_Trim,
+   LM_Word,
+   LM_IntLiteral,
+   LM_StrLiteral,
+   LM_Comment
+} LexerMode;
+
+typedef struct {
+   Vector new_line_indices;
+   cstr file_path;
+   cstr file_contents;
+   u32 z;
+   i32 current;
+   i32 peek;
+} Lexer;
+
+Lexer Lexer_new(cstr file_path);
+void Lexer_delete(Lexer* self);
+
+Token Lexer_next(Lexer* self);
+Loc Lexer_loc_from_offset(Lexer* self, u32 offset);
+
+void Token_dump(Token self, Lexer* lexer);
+
+const cstr TokenType_to_cstr(TokenType self);
+

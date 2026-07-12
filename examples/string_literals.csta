@@ -1,0 +1,6 @@
+// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// See the LICENSE file for more information.
+
+// String literals push 2 values onto the stack
+// Their length and then a pointer to their address
+"Zhyivannye miratte!\n" 1 1 syscall3 drop

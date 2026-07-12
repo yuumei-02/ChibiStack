@@ -1,20 +1,18 @@
 # About
-Stacked is a very basic stack-based programming language made as a college assignment. <br>
-The assignment required me to write a simple compiler that uses llvm. <br>
+ChibiStack is stack-based programming made for recreational purposes. <br>
 
 # Dependencies
-llc: https://llvm.org/docs/CommandGuide/llc.html <br>
+Nasm: https://www.nasm.us/ <br>
 Mektova-C-Utils: https://github.com/yuumei-02/Mektova-C-Utils <br>
 Vlodinnye make: https://github.com/yuumei-02/Vlodinnye-make <br>
 
 # Building the project
 Bootstrap the build system via ```gcc -std=c23 ./vmake.c -o ./vmake -lmcu-debug``` <br>
-Then, run ```./vmake build``` and you're done. <br>
-
-# Status
-Completed and served it's purpose. <br>
+Then run ```./vmake build``` and you're done. <br>
 
 # Roadmap
-[2/3] loops and if statements <br>
-[x] syscalls <br>
+[ ] Turing complete. <br>
+[ ] Statically typed. <br>
+[ ] Compiles down to a native executable. <br>
+[ ] Standard library. <br>
 
