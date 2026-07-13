@@ -8,6 +8,22 @@
 #include "ir.h"
 #include "reporter.h"
 
+void report_unexpected_token_expected(Lexer* lexer, Token token, TokenType expected) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+   eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"%s\"",
+      lexer->file_path, loc.y, loc.x,
+      TokenType_to_cstr(token.type),
+      TokenType_to_cstr(expected));
+}
+
+void report_unexpected_token(Lexer* lexer, Token token) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+
+   eprintln("%s:%u:%u: error: Unexpected token \"%s\"",
+      lexer->file_path, loc.y, loc.x,
+      TokenType_to_cstr(token.type));
+}
+
 void report_not_enough_stack_elements(const cstr for_instr, Lexer* lexer, u32 offset) {
    Loc loc = Lexer_loc_from_offset(lexer, offset);
    eprintln("%s:%u:%u: error: Not enough items on the stack for operation \"%s\"",
