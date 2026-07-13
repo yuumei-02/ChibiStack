@@ -9,6 +9,7 @@
 #include "timing.h"
 #include "lexer.h"
 #include "ir.h"
+#include "reporter.h"
 
 HashMap_impl(Type)
 
@@ -28,31 +29,6 @@ static void create_build_in_types(IR* ir) {
    HashMap_put(Type)(&ir->type_table, int_type.name,  (Type) { .type_id = int_type.id });
    HashMap_put(Type)(&ir->type_table, uint_type.name, (Type) { .type_id = uint_type.id });
    HashMap_put(Type)(&ir->type_table, ptr_type.name,  (Type) { .type_id = ptr_type.id });
-}
-
-void report_not_enough_stack_elements(const cstr for_instr, Lexer* lexer, u32 offset) {
-   Loc loc = Lexer_loc_from_offset(lexer, offset);
-   eprintln("%s:%u:%u: error: Not enough items on the stack for operation \"%s\"",
-      lexer->file_path, loc.y, loc.x, for_instr);
-}
-
-void report_unexpected_type(const cstr got, const cstr expected, Lexer* lexer, u32 offset) {
-   Loc loc = Lexer_loc_from_offset(lexer, offset);
-   eprintln("%s:%u:%u: error: Expected Type \"%s\" got \"%s\"",
-      lexer->file_path, loc.y, loc.x, expected, got);
-}
-
-void report_incompatible_binop_types(IrInstrKind operator, const cstr left, const cstr right, Lexer* lexer, u32 offset) {
-   Loc loc = Lexer_loc_from_offset(lexer, offset);
-   eprintln("%s:%u:%u: error: Type \"%s\" and \"%s\" are not compatible for operator \"%s\"",
-      lexer->file_path, loc.y, loc.x,
-      left, right, IrInstrKind_to_cstr(operator));
-}
-
-void report_unhandled_stack_items(i32 amount, Lexer* lexer, u32 offset) {
-   Loc loc = Lexer_loc_from_offset(lexer, offset);
-   eprintln("%s:%u:%u: error: %d item(s) of unhandled data on the stack",
-      lexer->file_path, loc.y, loc.x, amount);
 }
 
 Lexer* get_lexer_from_lexer_id(Vector* Lexers, u16 lexer_i) {
