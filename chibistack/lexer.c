@@ -1,6 +1,7 @@
 // Copyright (c) 2026 yuumei-02. All Rights Reserved.
 // See the LICENSE file for more information.
 
+#define _XOPEN_SOURCE 500
 #include <mcu/core.h>
 #include <mcu/io.h>
 #include <mcu/memory.h>
@@ -8,6 +9,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "lexer.h"
 #include "timing.h"
@@ -44,6 +46,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Proc:       return "Proc";
       case TT_Begin:      return "Begin";
       case TT_End:        return "End";
+      case TT_Import:     return "Import";
       case TT_Puti:       return "Puti";
    }
 
@@ -71,11 +74,11 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "proc",     TT_Proc);
    HashMap_put(TokenType)(&G_keywords, "begin",    TT_Begin);
    HashMap_put(TokenType)(&G_keywords, "end",      TT_End);
+   HashMap_put(TokenType)(&G_keywords, "#import",  TT_Import);
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
 Lexer Lexer_new(cstr file_path) {
-   // @Todo: Convert file_path to an absolute path
    check_define_keywords();
 
    Lexer self = {
@@ -114,6 +117,7 @@ Lexer Lexer_new(cstr file_path) {
    }
 
    self.new_line_indices = Vector_new(sizeof(u32));
+   self.full_path = realpath(file_path, nullptr);
    return self;
 
 read_failure:
@@ -125,6 +129,7 @@ void Lexer_delete(Lexer* self) {
 
    Vector_free(&self->new_line_indices);
    mcu_free(self->file_contents);
+   mcu_free(self->full_path);
    *self = (Lexer) {0};
 }
 

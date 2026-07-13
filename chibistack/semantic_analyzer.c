@@ -222,6 +222,10 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
          // @Todo: Check if the procedure exist in scope.
          case IIK_ProcCall: continue;
 
+         // @Todo: Start a new scope
+         case IIK_ModuleBegin: continue;
+         case IIK_ModuleEnd:   continue;
+
          case IIK_Puti: {
             minimum_required_stack_size(1);
 
