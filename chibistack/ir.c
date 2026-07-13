@@ -176,9 +176,9 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    }));
 }
 
-void parse_module(cstr file, IR* ir, ParsingState* state) {
+void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* state) {
    {
-      Lexer lexer = Lexer_new(file);
+      Lexer lexer = Lexer_new(file, relative_to);
       Vector_push(&ir->Lexers, &lexer);
    }
 
@@ -205,7 +205,7 @@ void parse_module(cstr file, IR* ir, ParsingState* state) {
             }
 
             // @Note: Don't free the memory of StringLiteral as the lexer takes ownership over it.
-            parse_module(token.str_literal.chars, ir, state);
+            parse_module(token.str_literal.chars, file, ir, state);
          } break;
       
          case TT_Proc: {
@@ -247,7 +247,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
       .lexer_time = lexer_time
    };
 
-   parse_module(file, &self, &state);
+   parse_module(file, nullptr, &self, &state);
 
    *failure = state.failure;
    *ir_time = clock_end(&timer);

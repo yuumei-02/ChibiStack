@@ -78,7 +78,7 @@ typedef struct {
    i32 peek;
 } Lexer;
 
-Lexer Lexer_new(cstr file_path);
+Lexer Lexer_new(cstr file_path, nullable cstr relative_to);
 void Lexer_delete(Lexer* self);
 
 Token Lexer_next(Lexer* self, double* lexer_time);

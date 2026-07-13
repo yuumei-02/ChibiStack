@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <limits.h>
 
 #include "lexer.h"
 #include "timing.h"
@@ -78,14 +80,51 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
-Lexer Lexer_new(cstr file_path) {
+String path_strip_file(cstr path) {
+   mcu_assert(path != nullptr, "path can't be null");
+
+   String new_path = String_from(path);
+   for (isize i = new_path.length - 1; i >= 0; --i) {
+      if (new_path.chars[i] == '/') break;
+      String_pop(&new_path);
+   }
+
+   return new_path;
+}
+
+Lexer Lexer_new(cstr file_path, nullable cstr relative_to) {
    check_define_keywords();
 
+   char cwd[PATH_MAX] = {0};
+
+   if (relative_to != nullptr) {
+      if (getcwd((cstr) &cwd, PATH_MAX) == nullptr) {
+         panic("[!] Failed to get the current working directory, reason: \"%s\"", strerror(errno));
+      }
+
+      String relative = path_strip_file(relative_to);
+      if (chdir(relative.chars)) {
+         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+      }
+      String_free(&relative);
+   }
+
    Lexer self = {
-      .file_path = file_path
+      .file_path = file_path,
+      .full_path = realpath(file_path, nullptr)
    };
 
-   FILE* handle = fopen(file_path, "rb");
+   if (self.full_path == nullptr) {
+      panic("[!] Failed to expand file path \"%s\", reason: \"%s\"", file_path, strerror(errno));
+   }
+
+   if (relative_to != nullptr) {
+      if (chdir(cwd) < 0) {
+         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+      }
+   }
+
+   FILE* handle = fopen(self.full_path, "rb");
    if (handle == nullptr)
       panic("[!] Failed to open file \"%s\", reason: \"%s\"", strerror(errno));
 
@@ -117,7 +156,6 @@ Lexer Lexer_new(cstr file_path) {
    }
 
    self.new_line_indices = Vector_new(sizeof(u32));
-   self.full_path = realpath(file_path, nullptr);
    return self;
 
 read_failure:
