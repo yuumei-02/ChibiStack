@@ -13,7 +13,9 @@
 HashMap_impl(Type)
 
 typedef struct {
+   u16 lexer_i;
    u32 id;
+   u32 offset;
    cstr name;
 } TypeInfo;
 
@@ -92,15 +94,42 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
       IrInstr* instr = Vector_get(&ir->IrInstructions, i);
 
       switch (instr->kind) {
-         case IIK_PushInt:  Vector_push(&type_stack, &int_type);  continue;
-         case IIK_PushUint: Vector_push(&type_stack, &uint_type); continue;
-         case IIK_PushAddr: Vector_push(&type_stack, &ptr_type);  continue;
+         case IIK_PushInt: {
+            Vector_push_create(&type_stack, ((TypeInfo) {
+               .id = int_type.id,
+               .name = int_type.name,
+               .lexer_i = instr->lexer,
+               .offset = instr->z
+            }));
+         } continue;
+
+         case IIK_PushUint: {
+            Vector_push_create(&type_stack, ((TypeInfo) {
+               .id = uint_type.id,
+               .name = uint_type.name,
+               .lexer_i = instr->lexer,
+               .offset = instr->z
+            }));
+         } continue;
+
+         case IIK_PushAddr: {
+            Vector_push_create(&type_stack, ((TypeInfo) {
+               .id = ptr_type.id,
+               .name = ptr_type.name,
+               .lexer_i = instr->lexer,
+               .offset = instr->z
+            }));
+         } continue;
 
          case IIK_Drop: {
             minimum_required_stack_size(1);
             Vector_pop(&type_stack);
          } continue;
 
+         // @Todo: Should TypeInfo instances that are pushed to the type_stack by stack operations
+         //        update those TypeInfo instances to point to the stack operation in source or to
+         //        their origin in source?
+         //        - Yuumei-02, 13-07-2026 15:26
          case IIK_Swap: {
             minimum_required_stack_size(2);
          
@@ -133,6 +162,8 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
                goto failure;
             }
 
+            a.lexer_i = instr->lexer;
+            a.offset  = instr->z;
             Vector_push(&type_stack, &a);
          } continue;
 
@@ -150,17 +181,19 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             if (a.id != expected_type.id || b.id != expected_type.id) {
                if (a.id != expected_type.id) {
                   report_unexpected_type(a.name, expected_type.name,
-                     get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
+                     get_lexer_from_lexer_id(&ir->Lexers, a.lexer_i), a.offset);
                }
 
                if (b.id != expected_type.id) {
                   report_unexpected_type(b.name, expected_type.name,
-                     get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
+                     get_lexer_from_lexer_id(&ir->Lexers, b.lexer_i), b.offset);
                }
 
                goto failure;
             }
 
+            a.lexer_i = instr->lexer;
+            a.offset  = instr->z;
             Vector_push(&type_stack, &a);
          } continue;
 
@@ -189,8 +222,13 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
 
             for (u32 i = 0; i < required_stack_size; ++i)
                Vector_pop(&type_stack);
-            
-            Vector_push(&type_stack, &int_type);
+
+            Vector_push_create(&type_stack, ((TypeInfo) {
+               .id = int_type.id,
+               .name = int_type.name,
+               .lexer_i = instr->lexer,
+               .offset = instr->z
+            }));
          } continue;
 
          case IIK_ProcBegin: {
@@ -214,7 +252,7 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             TypeInfo a = *(TypeInfo*) Vector_pop(&type_stack);
             if (a.id != int_type.id) {
                report_unexpected_type(a.name, int_type.name,
-                  get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
+                  get_lexer_from_lexer_id(&ir->Lexers, a.lexer_i), a.offset);
                goto failure;
             }
          } continue;
