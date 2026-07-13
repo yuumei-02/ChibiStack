@@ -187,7 +187,7 @@ void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* st
 
    Vector_push_create(&ir->IrInstructions, ((IrInstr) {
       .kind = IIK_ModuleBegin,
-      .lexer = lexer_i
+      .lexer = lexer_i,
    }));
 
    loop {

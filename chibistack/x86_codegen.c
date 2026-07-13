@@ -57,9 +57,7 @@ static i32 execute_command_impl(bool echo, bool suppress, const cstr format, ...
    return result;
 }
 
-static FILE* get_file_handle(bool asm_dump) {
-   if (asm_dump) return stdout;
-
+static FILE* get_file_handle() {
    FILE* handle = fopen("./output.asm", "w");
    if (handle == nullptr)
       panic("[!] Failed to open file \"./output.asm\", reason: \"%s\"", strerror(errno));
@@ -84,6 +82,10 @@ static void outwrite(FILE* handle, const cstr format, ...) {
    va_end(args);
 }
 
+static inline Lexer* get_lexer(IR* ir, u16 lexer_i) {
+   return Vector_get(&ir->Lexers, lexer_i);
+}
+
 i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_time) {
    mcu_assert(ir != nullptr, "ir can't be null");
    mcu_assert(code_gen_time != nullptr, "code_gen_time can't be null");
@@ -94,7 +96,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
    // @Todo: Look into whether or not we should use DEFAULT REL for our NASM generation
    //        - Yuumei-02, 12-07-2026 15:32
-   FILE* handle = get_file_handle(asm_dump);
+   FILE* handle = get_file_handle();
    outwrite(handle,
       "BITS 64\n"
       "global _start\n"
@@ -180,11 +182,22 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
       switch (instr->kind) {
          case IIK_ProcBegin: {
+            char tmp = instr->word.chars[instr->word.length];
+            instr->word.chars[instr->word.length] = '\0';
+            bool is_main = strcmp(instr->word.chars, "main") == 0;
+            instr->word.chars[instr->word.length] = tmp;
+         
+            if (is_main) {
+               outwrite(handle, "main:\n");
+            } else {
+               outwrite(handle, "%s@%.*s:\n",
+                  get_lexer(ir, instr->lexer)->label_path,
+                  (i32) instr->word.length, instr->word.chars);
+            }
+
             outwrite(handle,
-               "%.*s:\n"
                "   push rbp\n"
-               "   mov rbp, rsp\n",
-               (i32) instr->word.length, instr->word.chars);
+               "   mov rbp, rsp\n");
          } continue;
 
          case IIK_ProcEnd: {
@@ -205,7 +218,8 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                   (i32) instr->word.length, instr->word.chars);
             } else {
                outwrite(handle,
-                  "   call %.*s\n",
+                  "   call %s@%.*s\n",
+                  get_lexer(ir, instr->lexer)->label_path,
                   (i32) instr->word.length, instr->word.chars);
             }
          } continue;
@@ -352,12 +366,15 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
    close_file_handle(handle, asm_dump);
    *code_gen_time = clock_end(&timer);
 
+   if (asm_dump) return 0;
+
    clock_start(&timer);
+
    if (execute_command("nasm -felf64 ./output.asm"))  goto failure;
    if (execute_command("ld ./output.o -o ./output"))  goto failure;
    if (execute_command("rm ./output.asm ./output.o")) goto failure;
-   *linker_time = clock_end(&timer);
 
+   *linker_time = clock_end(&timer);
    return 0;
 
 failure:
