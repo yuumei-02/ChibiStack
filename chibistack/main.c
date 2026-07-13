@@ -1,4 +1,4 @@
-// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// Copyright (c) 2026 Yuumei-02. All Rights Reserved.
 // See the LICENSE file for more information.
 
 #include <mcu/core.h>
@@ -8,6 +8,7 @@
 #include "flags.h"
 #include "lexer.h"
 #include "ir.h"
+#include "semantic_analyzer.h"
 #include "x86_codegen.h"
 
 double token_dump(cstr file) {
@@ -28,10 +29,11 @@ i32 compile(cstr file, CompileFlags flags) {
    mcu_assert(file != nullptr, "file can't be null");
 
    bool failure;
-   double lexer_time = 0.0f;
-   double ir_time = 0.0f;
-   double code_gen_time = 0.0f;
-   double linker_time = 0.0f;
+   double lexer_time             = 0.0f;
+   double ir_time                = 0.0f;
+   double semantic_analysis_time = 0.0f;
+   double code_gen_time          = 0.0f;
+   double linker_time            = 0.0f;
    
    if (flags.token_dump) {
       lexer_time = token_dump(file);
@@ -41,6 +43,10 @@ i32 compile(cstr file, CompileFlags flags) {
 
    IR ir = IR_from_file(file, &failure, &ir_time, &lexer_time);
    if (failure) goto failure;
+
+   if (validate_program(&ir, &semantic_analysis_time))
+      goto failure;
+   
    if (flags.ir_dump) {
       IR_dump(&ir);
       goto success;
@@ -58,17 +64,18 @@ cleanup:
 statistics:
    u32 tokens_parsed = get_tokens_parsed();
    println("\nCompilation statistics");
-   println("------------------------------------");
+   println("--------------------------------------");
    println("Target : x86_64 Linux");
-   println("------------------------------------");
-   println("Tokens          : %.2lfm Tokens/s (%u tokens)", ((double) tokens_parsed / lexer_time) / 1'000'000.0f, tokens_parsed);
-   println("Lexer           : %.6lf seconds", lexer_time);
-   println("Parser & IR     : %.6lf seconds", ir_time - lexer_time);
-   println("Code generation : %.6lf seconds", code_gen_time);
-   println("Nasm & Linker   : %.6lf seconds", linker_time);
-   println("------------------------------------");
-   println("Total time      : %.6lf seconds", ir_time + code_gen_time + linker_time);
-   println("------------------------------------");
+   println("--------------------------------------");
+   println("Tokens            : %.2lfm Tokens/s (%u tokens)", ((double) tokens_parsed / lexer_time) / 1'000'000.0f, tokens_parsed);
+   println("Lexer             : %.6lf seconds", lexer_time);
+   println("Parser & IR       : %.6lf seconds", ir_time - lexer_time);
+   println("Semantic analysis : %.6lf seconds", semantic_analysis_time);
+   println("Code generation   : %.6lf seconds", code_gen_time);
+   println("Nasm & Linker     : %.6lf seconds", linker_time);
+   println("--------------------------------------");
+   println("Total time        : %.6lf seconds", ir_time + code_gen_time + linker_time);
+   println("--------------------------------------");
    println(failure == false
       ? "Compilation succeeded\n"
       : "Compilation failure\n");

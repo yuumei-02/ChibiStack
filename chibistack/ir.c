@@ -8,6 +8,7 @@
 #include "lexer.h"
 #include "ir.h"
 #include "timing.h"
+#include "reporter.h"
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {
@@ -119,17 +120,13 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 
          case TT_Eof: {
             if (state->panic) return token.z;
-            Loc loc = Lexer_loc_from_offset(lexer, token.z);
-            eprintln("%s:%u:%u: error: Unexpected token \"Eof\"",
-               lexer->file_path, loc.y, loc.x);
+            report_unexpected_token(lexer, token);
             enter_panic(state);
          } return token.z;
 
          default: {
             if (state->panic) break;
-            Loc loc = Lexer_loc_from_offset(lexer, token.z);
-            eprintln("%s:%u:%u: error: Unexpected token \"%s\"",
-               lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+            report_unexpected_token(lexer, token);
             enter_panic(state);
          } break;
       }
@@ -141,9 +138,7 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
-      Loc loc = Lexer_loc_from_offset(lexer, token.z);
-      eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Word\"",
-         lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+      report_unexpected_token_expected(lexer, token, TT_Word);
       enter_panic(state);
       return;
    }
@@ -152,9 +147,7 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 
    token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Begin) {
-      Loc loc = Lexer_loc_from_offset(lexer, token.z);
-      eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"Begin\"",
-         lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+      report_unexpected_token_expected(lexer, token, TT_Begin);
       enter_panic(state);
       return;
    }
@@ -180,6 +173,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
    clock_start(&timer);
 
    IR self = {
+      .type_table = HashMap_new(Type)(),
       .Lexers = Vector_new(sizeof(Lexer)),
       .IrInstructions = Vector_new(sizeof(IrInstr)),
       .string_literals = Vector_new(sizeof(String))
@@ -202,9 +196,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
          case TT_Eof: goto finish_parsing;
          default: {
             if (state.panic) break;
-            Loc loc = Lexer_loc_from_offset(lexer, token.z);
-            eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected token \"proc\"",
-               lexer->file_path, loc.y, loc.x, TokenType_to_cstr(token.type));
+            report_unexpected_token_expected(lexer, token, TT_Proc);
             state.panic = true;
             state.failure = true;
          }
@@ -230,6 +222,7 @@ void IR_delete(IR* self) {
       String_free(str);
    }
 
+   HashMap_free(Type)(&self->type_table);
    Vector_free(&self->Lexers);
    Vector_free(&self->string_literals);
    Vector_free(&self->IrInstructions);
