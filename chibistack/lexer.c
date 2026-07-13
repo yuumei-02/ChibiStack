@@ -35,6 +35,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Idiv:       return "Idiv";
       case TT_Udiv:       return "Udiv";
       case TT_Mul:        return "Mul";
+      case TT_Dot:        return "Dot";
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_StrLiteral: return "StrLiteral";
@@ -92,6 +93,7 @@ String path_strip_file(cstr path) {
    return new_path;
 }
 
+// @Todo: Add actual file IO error reporting.
 Lexer Lexer_new(cstr file_path, nullable cstr relative_to) {
    check_define_keywords();
 
@@ -186,7 +188,8 @@ static bool word_allowed(char c) {
       c != '-' &&
       c != ' ' &&
       c != '\t' &&
-      c != '\n'
+      c != '\n' &&
+      c != '.'
    );
 }
 
@@ -213,6 +216,7 @@ static inline Token Lexer_next_impl(Lexer* self) {
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
                case '*': token.type = TT_Mul; return token;
+               case '.': token.type = TT_Dot; return token;
 
                case '-': {
                   if (!(self->peek >= '0' && self->peek <= '9')) {

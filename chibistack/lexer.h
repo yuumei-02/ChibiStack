@@ -22,6 +22,7 @@ typedef enum : i32 {
    TT_Idiv,
    TT_Udiv,
    TT_Mul,
+   TT_Dot,
 
    // Literals
    TT_Word,
