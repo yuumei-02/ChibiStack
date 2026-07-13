@@ -47,6 +47,13 @@ typedef struct {
 } IrInstr;
 
 typedef struct {
+   u32 type_id;
+} Type;
+
+HashMap_hdr(Type)
+
+typedef struct {
+   HashMap(Type) type_table;
    Vector Lexers;
    Vector IrInstructions;
    Vector string_literals;

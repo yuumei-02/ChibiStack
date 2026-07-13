@@ -180,6 +180,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
    clock_start(&timer);
 
    IR self = {
+      .type_table = HashMap_new(Type)(),
       .Lexers = Vector_new(sizeof(Lexer)),
       .IrInstructions = Vector_new(sizeof(IrInstr)),
       .string_literals = Vector_new(sizeof(String))
@@ -230,6 +231,7 @@ void IR_delete(IR* self) {
       String_free(str);
    }
 
+   HashMap_free(Type)(&self->type_table);
    Vector_free(&self->Lexers);
    Vector_free(&self->string_literals);
    Vector_free(&self->IrInstructions);
