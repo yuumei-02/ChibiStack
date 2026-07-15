@@ -11,7 +11,7 @@ proc addmul with
    ---
    int
 begin
-   mul +
+   * +
 end
 
 proc main begin

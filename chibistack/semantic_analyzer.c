@@ -11,25 +11,10 @@
 #include "ir.h"
 #include "reporter.h"
 
-HashMap_impl(Type)
-
-typedef struct {
-   u16 lexer_i;
-   u32 id;
-   u32 offset;
-   cstr name;
-} TypeInfo;
-
-static TypeInfo int_type  = { .id = 0, .name = "int"  };
-static TypeInfo uint_type = { .id = 1, .name = "uint" };
-static TypeInfo ptr_type  = { .id = 2, .name = "ptr"  };
-static u32 next_type_id = 3;
-
-static void create_build_in_types(IR* ir) {
-   HashMap_put(Type)(&ir->type_table, int_type.name,  (Type) { .type_id = int_type.id });
-   HashMap_put(Type)(&ir->type_table, uint_type.name, (Type) { .type_id = uint_type.id });
-   HashMap_put(Type)(&ir->type_table, ptr_type.name,  (Type) { .type_id = ptr_type.id });
-}
+extern TypeInfo int_type;
+extern TypeInfo uint_type;
+extern TypeInfo ptr_type;
+extern u32 next_type_id;
 
 Lexer* get_lexer_from_lexer_id(Vector* Lexers, u16 lexer_i) {
    Lexer* lexer = Vector_get(Lexers, (usize) lexer_i);
@@ -64,7 +49,6 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
 
    u32 starting_stack_size = 0;
 
-   create_build_in_types(ir);
    Vector type_stack = Vector_new(sizeof(TypeInfo));
    foreach (ir->IrInstructions, i) {
       IrInstr* instr = Vector_get(&ir->IrInstructions, i);

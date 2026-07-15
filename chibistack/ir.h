@@ -52,9 +52,10 @@ typedef enum {
 } BitLength;
 
 typedef enum {
+   TK_Void,
    TK_Int,
    TK_Ptr,
-   TIK_Proc
+   TK_Proc
 } TypeKind;
 
 typedef struct {
@@ -73,6 +74,13 @@ typedef struct {
       } proc;
    };
 } Type;
+
+typedef struct {
+   u16 lexer_i;
+   u32 id;
+   u32 offset;
+   cstr name;
+} TypeInfo;
 
 typedef enum {
    SK_Proc

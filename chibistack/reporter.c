@@ -8,13 +8,6 @@
 #include "ir.h"
 #include "reporter.h"
 
-void report_non_existant_word(Lexer* lexer, Token token) {
-   Loc loc = Lexer_loc_from_offset(lexer, token.z);
-   eprintln("%s:%u:%u: error: Word \"%.*s\" does not exist",
-      lexer->file_path, loc.y, loc.x,
-      (i32) token.str_view.length, token.str_view.chars);
-}
-
 void report_unexpected_token_expected(Lexer* lexer, Token token, TokenType expected) {
    Loc loc = Lexer_loc_from_offset(lexer, token.z);
    eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"%s\"",
@@ -29,6 +22,26 @@ void report_unexpected_token(Lexer* lexer, Token token) {
    eprintln("%s:%u:%u: error: Unexpected token \"%s\"",
       lexer->file_path, loc.y, loc.x,
       TokenType_to_cstr(token.type));
+}
+
+void report_non_existant_word(Lexer* lexer, Token token) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+   eprintln("%s:%u:%u: error: Word \"%.*s\" does not exist",
+      lexer->file_path, loc.y, loc.x,
+      (i32) token.str_view.length, token.str_view.chars);
+}
+
+void report_unknown_type(Lexer* lexer, Token token) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+   eprintln("%s:%u:%u: error: Type \"%.*s\" does not exist",
+      lexer->file_path, loc.y, loc.x,
+      (i32) token.str_view.length, token.str_view.chars);
+}
+
+void report_missing_return_type(Lexer* lexer, Token token) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+   eprintln("%s:%u:%u: error: Missing return type",
+      lexer->file_path, loc.y, loc.x);
 }
 
 void report_not_enough_stack_elements(const cstr for_instr, Lexer* lexer, u32 offset) {

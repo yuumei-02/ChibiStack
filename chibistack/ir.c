@@ -11,7 +11,15 @@
 #include "timing.h"
 #include "reporter.h"
 
+HashMap_impl(Type)
 HashMap_impl(Symbol)
+
+TypeInfo void_type      = { .id = 0, .name = "void" };
+TypeInfo int_type       = { .id = 1, .name = "int"  };
+TypeInfo uint_type      = { .id = 2, .name = "uint" };
+TypeInfo ptr_type       = { .id = 3, .name = "ptr"  };
+TypeInfo void_proc_type = { .id = 4, .name = "void --- void" };
+u32 next_type_id = 5;
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {           
@@ -131,6 +139,7 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
             token.str_view.chars[token.str_view.length] = tmp;
 
             if (symbol == nullptr) {
+               // @Todo: Look into the type table for the symbol and push it's type_id onto the stack
                report_non_existant_word(lexer, token);
                state->failure = true;
                push_instr(IIK_InvalidSymbol)
@@ -165,7 +174,98 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    #undef push_instr
 }
 
-static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
+static Type* get_type_from_word(IR* ir, Token token) {
+   char tmp = token.str_view.chars[token.str_view.length];
+   token.str_view.chars[token.str_view.length] = '\0';
+   Type* type = HashMap_get(Type)(&ir->type_table, token.str_view.chars);
+   token.str_view.chars[token.str_view.length] = tmp;
+   return type;
+}
+
+static void parse_procedure_parameters(IR* ir, Lexer* lexer, ParsingState* state) {
+   Token token = Lexer_next(lexer, state->lexer_time);
+   if (token.type != TT_Word) {
+      report_unexpected_token_expected(lexer, token, TT_Word);
+      enter_panic(state);
+      return;
+   }
+
+   Type* type = get_type_from_word(ir, token);
+   if (type == nullptr) {
+      report_unknown_type(lexer, token);
+      enter_panic(state);
+      return;
+   }
+
+   Vector return_types = Vector_new(sizeof(u32));
+   Vector parameter_types = Vector_new(sizeof(u32));
+   Vector_push(&parameter_types, &type->type_id);
+   String type_signature = String_from_sv(token.str_view);
+
+   bool parsing_parameter_types = true;
+   loop {
+      token = Lexer_next(lexer, state->lexer_time);
+
+      switch (token.type) {
+         case TT_Word: {
+            type = get_type_from_word(ir, token);
+            if (type == nullptr) {
+               report_unknown_type(lexer, token);
+               enter_panic(state);
+               goto failure;
+            }
+
+            switch (parsing_parameter_types) {
+               case true:  Vector_push(&parameter_types, &type->type_id); break;
+               case false: Vector_push(&return_types, &type->type_id);    break;
+            }
+
+            String_append(&type_signature, ' ');
+            String_append_sv(&type_signature, token.str_view);
+         } break;
+
+         case TT_Bikeshedder: {
+            parsing_parameter_types = false;
+            String_append_cstr(&type_signature, " ---");
+         } break;
+
+         case TT_Begin: {
+            if (return_types.length < 1) {
+               report_missing_return_type(lexer, token);
+               enter_panic(state);
+               goto failure;
+            }
+
+            HashMap_put(Type)(&ir->type_table, type_signature.chars, (Type) {
+               .kind = TK_Proc,
+               .type_id = next_type_id++,
+               .proc = {
+                  .parameter_types = parameter_types,
+                  .return_types = return_types
+               }
+            });
+
+            String_free(&type_signature);
+            return;
+         } break;
+      
+         default: {
+            report_unexpected_token(lexer, token);
+            enter_panic(state);
+            goto failure;
+         }
+      }
+   }
+
+   return;
+
+failure:
+   String_free(&type_signature);
+   Vector_free(&parameter_types);
+   Vector_free(&return_types);
+}
+
+static void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
       report_unexpected_token_expected(lexer, token, TT_Word);
@@ -176,12 +276,24 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    StringView name = token.str_view;
 
    token = Lexer_next(lexer, state->lexer_time);
-   if (token.type != TT_Begin) {
-      report_unexpected_token_expected(lexer, token, TT_Begin);
-      enter_panic(state);
-      return;
+   switch (token.type) {
+      case TT_Begin: {
+         
+      } goto begin_procedure_body;
+
+      case TT_With: {
+         parse_procedure_parameters(ir, lexer, state);
+         if (state->panic) return;
+      } goto begin_procedure_body;
+
+      default: {
+         report_unexpected_token_expected(lexer, token, TT_Begin);
+         enter_panic(state);
+         return;
+      }
    }
 
+begin_procedure_body:
    char tmp = name.chars[name.length];
    name.chars[name.length] = '\0';
    HashMap_put(Symbol)(&ir->symbol_table, name.chars, (Symbol) {
@@ -285,6 +397,21 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
       .IrInstructions = Vector_new(sizeof(IrInstr)),
       .string_literals = Vector_new(sizeof(String))
    };
+
+   HashMap_put(Type)(&self.type_table, void_type.name, (Type) { .kind = TK_Void, .type_id = void_type.id });
+   HashMap_put(Type)(&self.type_table, int_type.name,  (Type) { .kind = TK_Int, .type_id = int_type.id, .integer = {
+      .is_signed = true,
+      .bits = BIT64
+   }});
+   HashMap_put(Type)(&self.type_table, uint_type.name, (Type) { .kind = TK_Int, .type_id = uint_type.id, .integer = {
+      .is_signed = false,
+      .bits = BIT64
+   }});
+   HashMap_put(Type)(&self.type_table, ptr_type.name, (Type) { .kind = TK_Ptr, .type_id = ptr_type.id });
+   HashMap_put(Type)(&self.type_table, void_proc_type.name, (Type) { .kind = TK_Proc, .type_id = void_proc_type.id, .proc = {
+      .parameter_types = Vector_new(sizeof(u32)),
+      .return_types = Vector_new(sizeof(u32))
+   }});
 
    ParsingState state = {
       .lexer_time = lexer_time
