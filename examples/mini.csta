@@ -7,7 +7,7 @@
 // #include "../std/syscalls.csta"
 
 proc addmul with
-   int int int
+   int uint uint
    ---
    int
 begin

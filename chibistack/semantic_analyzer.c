@@ -209,8 +209,8 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             mcu_assert(type != nullptr, "Unreachable");
             mcu_assert(type->kind == TK_Proc, "Unreachable");
 
-            for (isize i = (isize) type->proc.parameter_types.length - 1; i >= 0; --i) {
-               TypeInfo* parameter_type = Vector_get(&type->proc.parameter_types, (usize) i);
+            foreach (type->proc.parameter_types, i) {
+               TypeInfo* parameter_type = Vector_get(&type->proc.parameter_types, i);
                Vector_push(&type_stack, parameter_type);
             }
          } continue;
