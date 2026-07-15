@@ -11,30 +11,33 @@
 #include "timing.h"
 #include "reporter.h"
 
+HashMap_impl(Symbol)
+
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
-   switch (self) {
-      case IIK_PushInt:     return "PushInt";
-      case IIK_PushUint:    return "PushUint";
-      case IIK_PushAddr:    return "PushAddr";
-      case IIK_Drop:        return "Drop";
-      case IIK_Swap:        return "Swap";
-      case IIK_Dup:         return "Dup";
-      case IIK_Add:         return "Add";
-      case IIK_Sub:         return "Sub";
-      case IIK_Idiv:        return "Idiv";
-      case IIK_Udiv:        return "Udiv";
-      case IIK_Mul:         return "Mul";
-      case IIK_Syscall0:    return "Syscall0";
-      case IIK_Syscall1:    return "Syscall1";
-      case IIK_Syscall2:    return "Syscall2";
-      case IIK_Syscall3:    return "Syscall3";
-      case IIK_Syscall4:    return "Syscall4";
-      case IIK_Syscall5:    return "Syscall5";
-      case IIK_Syscall6:    return "Syscall6";
-      case IIK_ProcBegin:   return "ProcBegin";
-      case IIK_ProcEnd:     return "ProcEnd";
-      case IIK_ProcCall:    return "ProcCall";
-      case IIK_Puti:        return "Puti";
+   switch (self) {           
+      case IIK_PushInt:       return "PushInt";
+      case IIK_PushUint:      return "PushUint";
+      case IIK_PushAddr:      return "PushAddr";
+      case IIK_Drop:          return "Drop";
+      case IIK_Swap:          return "Swap";
+      case IIK_Dup:           return "Dup";
+      case IIK_Add:           return "Add";
+      case IIK_Sub:           return "Sub";
+      case IIK_Idiv:          return "Idiv";
+      case IIK_Udiv:          return "Udiv";
+      case IIK_Mul:           return "Mul";
+      case IIK_Syscall0:      return "Syscall0";
+      case IIK_Syscall1:      return "Syscall1";
+      case IIK_Syscall2:      return "Syscall2";
+      case IIK_Syscall3:      return "Syscall3";
+      case IIK_Syscall4:      return "Syscall4";
+      case IIK_Syscall5:      return "Syscall5";
+      case IIK_Syscall6:      return "Syscall6";
+      case IIK_ProcBegin:     return "ProcBegin";
+      case IIK_ProcEnd:       return "ProcEnd";
+      case IIK_ProcCall:      return "ProcCall";
+      case IIK_Puti:          return "Puti";
+      case IIK_InvalidSymbol: return "InvalidSymbol";
    }
 
    return "Unknown";
@@ -121,11 +124,28 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
 
          case TT_Puti: push_instr(IIK_Puti) break;
 
-         // @Todo: Once we implement symbol tables and scopes,
-         //        check whether or not the word exist and report an error if not.
          case TT_Word: {
-            instr.word = token.str_view;
-            push_instr(IIK_ProcCall)
+            char tmp = token.str_view.chars[token.str_view.length];
+            token.str_view.chars[token.str_view.length] = '\0';
+            Symbol* symbol = HashMap_get(Symbol)(&ir->symbol_table, token.str_view.chars);
+            token.str_view.chars[token.str_view.length] = tmp;
+
+            if (symbol == nullptr) {
+               report_non_existant_word(lexer, token);
+               state->failure = true;
+               push_instr(IIK_InvalidSymbol)
+               break;
+            }
+
+            switch (symbol->kind) {
+               case SK_Proc: {
+                  instr.word = token.str_view;
+                  push_instr(IIK_ProcCall)
+               } goto found_symbol;
+            }
+
+            panic("unreachable");
+         found_symbol:
          } break;
 
          case TT_Eof: {
@@ -161,6 +181,13 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
       enter_panic(state);
       return;
    }
+
+   char tmp = name.chars[name.length];
+   name.chars[name.length] = '\0';
+   HashMap_put(Symbol)(&ir->symbol_table, name.chars, (Symbol) {
+      .kind = SK_Proc
+   });
+   name.chars[name.length] = tmp;
 
    Vector_push_create(&ir->IrInstructions, ((IrInstr) {
       .kind = IIK_ProcBegin,
@@ -253,6 +280,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
 
    IR self = {
       .type_table = HashMap_new(Type)(),
+      .symbol_table = HashMap_new(Symbol)(),
       .Lexers = Vector_new(sizeof(Lexer)),
       .IrInstructions = Vector_new(sizeof(IrInstr)),
       .string_literals = Vector_new(sizeof(String))
@@ -283,6 +311,7 @@ void IR_delete(IR* self) {
    }
 
    HashMap_free(Type)(&self->type_table);
+   HashMap_free(Symbol)(&self->symbol_table);
    Vector_free(&self->Lexers);
    Vector_free(&self->string_literals);
    Vector_free(&self->IrInstructions);

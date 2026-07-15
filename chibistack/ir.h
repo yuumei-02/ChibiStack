@@ -30,7 +30,9 @@ typedef enum : u16 {
    IIK_ProcEnd,
    IIK_ProcCall,
 
-   IIK_Puti
+   IIK_Puti,
+
+   IIK_InvalidSymbol
 } IrInstrKind;
 
 typedef struct {
@@ -49,10 +51,20 @@ typedef struct {
    u32 type_id;
 } Type;
 
+typedef enum {
+   SK_Proc
+} SymbolKind;
+
+typedef struct {
+   SymbolKind kind;
+} Symbol;
+
 HashMap_hdr(Type)
+HashMap_hdr(Symbol)
 
 typedef struct {
    HashMap(Type) type_table;
+   HashMap(Symbol) symbol_table;
    Vector Lexers;
    Vector IrInstructions;
    Vector string_literals;

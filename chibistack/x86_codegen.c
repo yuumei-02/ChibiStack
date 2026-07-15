@@ -321,6 +321,8 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                "   syscall\n"
                "   push rax\n");
          } continue;
+
+         case IIK_InvalidSymbol: panic("unreachable");
       }
 
       panic("unreachable");

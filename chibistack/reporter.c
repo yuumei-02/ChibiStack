@@ -8,6 +8,13 @@
 #include "ir.h"
 #include "reporter.h"
 
+void report_non_existant_word(Lexer* lexer, Token token) {
+   Loc loc = Lexer_loc_from_offset(lexer, token.z);
+   eprintln("%s:%u:%u: error: Word \"%.*s\" does not exist",
+      lexer->file_path, loc.y, loc.x,
+      (i32) token.str_view.length, token.str_view.chars);
+}
+
 void report_unexpected_token_expected(Lexer* lexer, Token token, TokenType expected) {
    Loc loc = Lexer_loc_from_offset(lexer, token.z);
    eprintln("%s:%u:%u: error: Unexpected token \"%s\", expected \"%s\"",

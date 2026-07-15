@@ -232,6 +232,8 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
                goto failure;
             }
          } continue;
+
+         case IIK_InvalidSymbol: continue;
       }
 
       panic("unreachable");

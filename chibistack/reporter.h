@@ -5,6 +5,7 @@
 
 void report_unexpected_token(Lexer* lexer, Token token);
 void report_unexpected_token_expected(Lexer* lexer, Token token, TokenType expected);
+void report_non_existant_word(Lexer* lexer, Token token);
 
 void report_not_enough_stack_elements(const cstr for_instr, Lexer* lexer, u32 offset);
 void report_unexpected_type(const cstr got, const cstr expected, Lexer* lexer, u32 offset);
