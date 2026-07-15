@@ -49,7 +49,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Proc:       return "Proc";
       case TT_Begin:      return "Begin";
       case TT_End:        return "End";
-      case TT_Import:     return "Import";
+      case TT_Include:    return "#include";
       case TT_Puti:       return "Puti";
    }
 
@@ -77,7 +77,7 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "proc",     TT_Proc);
    HashMap_put(TokenType)(&G_keywords, "begin",    TT_Begin);
    HashMap_put(TokenType)(&G_keywords, "end",      TT_End);
-   HashMap_put(TokenType)(&G_keywords, "#import",  TT_Import);
+   HashMap_put(TokenType)(&G_keywords, "#include",  TT_Include);
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 

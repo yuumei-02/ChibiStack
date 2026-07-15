@@ -44,7 +44,7 @@ typedef enum : i32 {
    TT_End,
 
    // Compiler directives
-   TT_Import,
+   TT_Include,
 
    // Temporary instrinsic procedures
    TT_Puti

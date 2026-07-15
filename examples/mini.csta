@@ -4,7 +4,7 @@
 // This file is not an example but rather a testing ground
 // for developing the compiler.
 
-#import "../std/syscalls.csta"
+#include "../std/syscalls.csta"
 
 proc add begin
    35 34 + puti

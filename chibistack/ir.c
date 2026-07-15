@@ -188,7 +188,7 @@ void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* st
 
    rehandle_token:
       switch (token.type) {
-         case TT_Import: {
+         case TT_Include: {
             exit_panic(state);
             token = Lexer_next(lexer, state->lexer_time);
             if (token.type != TT_StrLiteral) {
