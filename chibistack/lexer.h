@@ -73,7 +73,6 @@ typedef struct {
    Vector new_line_indices;
    cstr file_path;
    cstr full_path;
-   cstr label_path;
    cstr file_contents;
    u32 z;
    i32 current;

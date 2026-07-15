@@ -33,8 +33,6 @@ const cstr IrInstrKind_to_cstr(IrInstrKind self) {
       case IIK_ProcBegin:   return "ProcBegin";
       case IIK_ProcEnd:     return "ProcEnd";
       case IIK_ProcCall:    return "ProcCall";
-      case IIK_ModuleBegin: return "ModuleBegin";
-      case IIK_ModuleEnd:   return "ModuleEnd";
       case IIK_Puti:        return "Puti";
    }
 
@@ -184,11 +182,6 @@ void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* st
 
    u32 lexer_i = (u32) (ir->Lexers.length - 1);
    Lexer* lexer = Vector_get(&ir->Lexers, ir->Lexers.length - 1);
-
-   Vector_push_create(&ir->IrInstructions, ((IrInstr) {
-      .kind = IIK_ModuleBegin,
-      .lexer = lexer_i,
-   }));
 
    loop {
       Token token = Lexer_next(lexer, state->lexer_time);

@@ -182,22 +182,11 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
       switch (instr->kind) {
          case IIK_ProcBegin: {
-            char tmp = instr->word.chars[instr->word.length];
-            instr->word.chars[instr->word.length] = '\0';
-            bool is_main = strcmp(instr->word.chars, "main") == 0;
-            instr->word.chars[instr->word.length] = tmp;
-         
-            if (is_main) {
-               outwrite(handle, "main:\n");
-            } else {
-               outwrite(handle, "%s@%.*s:\n",
-                  get_lexer(ir, instr->lexer)->label_path,
-                  (i32) instr->word.length, instr->word.chars);
-            }
-
             outwrite(handle,
+               "%.*s:\n"
                "   push rbp\n"
-               "   mov rbp, rsp\n");
+               "   mov rbp, rsp\n",
+               (i32) instr->word.length, instr->word.chars);
          } continue;
 
          case IIK_ProcEnd: {
@@ -217,9 +206,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                   "   add rsp, 8\n",
                   (i32) instr->word.length, instr->word.chars);
             } else {
-               outwrite(handle,
-                  "   call %s@%.*s\n",
-                  get_lexer(ir, instr->lexer)->label_path,
+               outwrite(handle, "   call %.*s\n",
                   (i32) instr->word.length, instr->word.chars);
             }
          } continue;
@@ -337,9 +324,6 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                "   syscall\n"
                "   push rax\n");
          } continue;
-
-         case IIK_ModuleBegin: continue;
-         case IIK_ModuleEnd: continue;
       }
 
       panic("unreachable");

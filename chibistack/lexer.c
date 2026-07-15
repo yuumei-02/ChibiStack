@@ -93,25 +93,6 @@ String path_strip_file(cstr path) {
    return new_path;
 }
 
-static inline bool is_char_label_allowed(char c) {
-   return
-      (c >= 'a' && c <= 'z') ||
-      (c >= 'A' && c <= 'Z') ||
-      (c == '_' || c == '#');
-}
-
-cstr full_path_to_label_path(cstr full_path) {
-   String path = String_from(full_path);
-
-   for (usize i = 0; i < path.length; ++i) {
-      if (!is_char_label_allowed(path.chars[i])) {
-         path.chars[i] = '?';
-      }
-   }
-
-   return path.chars;
-}
-
 // @Todo: Add actual file IO error reporting.
 Lexer Lexer_new(cstr file_path, nullable cstr relative_to) {
    check_define_keywords();
@@ -144,8 +125,6 @@ Lexer Lexer_new(cstr file_path, nullable cstr relative_to) {
          panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
       }
    }
-
-   self.label_path = full_path_to_label_path(self.full_path);
 
    FILE* handle = fopen(self.full_path, "rb");
    if (handle == nullptr)
@@ -191,7 +170,6 @@ void Lexer_delete(Lexer* self) {
    Vector_free(&self->new_line_indices);
    mcu_free(self->file_contents);
    mcu_free(self->full_path);
-   mcu_free(self->label_path);
    *self = (Lexer) {0};
 }
 
