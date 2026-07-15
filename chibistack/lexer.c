@@ -1,6 +1,7 @@
 // Copyright (c) 2026 yuumei-02. All Rights Reserved.
 // See the LICENSE file for more information.
 
+#define _XOPEN_SOURCE 500
 #include <mcu/core.h>
 #include <mcu/io.h>
 #include <mcu/memory.h>
@@ -8,6 +9,9 @@
 
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <limits.h>
 
 #include "lexer.h"
 #include "timing.h"
@@ -15,10 +19,76 @@
 HashMap_hdr(TokenType)
 HashMap_impl(TokenType)
 
+HashMap_hdr(bool)
+HashMap_impl(bool)
+
 static HashMap(TokenType) G_keywords;
 static bool G_keywords_defined = false;
-
 static u32 tokens_parsed = 0;
+
+static HashMap(bool) G_included_files;
+static bool G_included_files_defined = false;
+
+static String path_strip_file(cstr path) {
+   mcu_assert(path != nullptr, "path can't be null");
+
+   String new_path = String_from(path);
+   for (isize i = new_path.length - 1; i >= 0; --i) {
+      if (new_path.chars[i] == '/') break;
+      String_pop(&new_path);
+   }
+
+   return new_path;
+}
+
+FileValidationResult validate_file(cstr file_path, nullable cstr relative_to, cstr* full_path) {
+   if (!G_included_files_defined) {
+      G_included_files = HashMap_new(bool)();
+      G_included_files_defined = true;
+   }
+
+   char cwd[PATH_MAX] = {0};
+
+   if (relative_to != nullptr) {
+      if (getcwd((cstr) &cwd, PATH_MAX) == nullptr) {
+         panic("[!] Failed to get the current working directory, reason: \"%s\"", strerror(errno));
+      }
+
+      String relative = path_strip_file(relative_to);
+      if (chdir(relative.chars) < 0) {
+         String_free(&relative);
+         goto relative_failure;
+      }
+      String_free(&relative);
+   }
+
+   *full_path = realpath(file_path, nullptr);
+   if (*full_path == nullptr) {
+      if (relative_to != nullptr) goto relative_failure;
+      return FVR_Invalid;
+   }
+
+   if (relative_to != nullptr) {
+      if (chdir(cwd) < 0) {
+         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+      }
+   }
+
+   bool* exist = HashMap_get(bool)(&G_included_files, *full_path);
+   if (exist != nullptr) {
+      return FVR_AlreadyIncluded;
+   }
+
+   HashMap_put(bool)(&G_included_files, *full_path, true);
+   return FVR_Ok;
+
+relative_failure:
+   if (chdir(cwd) < 0) {
+      panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+   }
+
+   return FVR_Invalid;
+}
 
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
@@ -31,6 +101,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Idiv:       return "Idiv";
       case TT_Udiv:       return "Udiv";
       case TT_Mul:        return "Mul";
+      case TT_Dot:        return "Dot";
       case TT_Word:       return "Word";
       case TT_IntLiteral: return "IntLiteral";
       case TT_StrLiteral: return "StrLiteral";
@@ -44,6 +115,7 @@ const cstr TokenType_to_cstr(TokenType self) {
       case TT_Proc:       return "Proc";
       case TT_Begin:      return "Begin";
       case TT_End:        return "End";
+      case TT_Include:    return "#include";
       case TT_Puti:       return "Puti";
    }
 
@@ -71,18 +143,19 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "proc",     TT_Proc);
    HashMap_put(TokenType)(&G_keywords, "begin",    TT_Begin);
    HashMap_put(TokenType)(&G_keywords, "end",      TT_End);
+   HashMap_put(TokenType)(&G_keywords, "#include",  TT_Include);
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
-Lexer Lexer_new(cstr file_path) {
-   // @Todo: Convert file_path to an absolute path
+Lexer Lexer_new(cstr file_path, cstr full_path) {
    check_define_keywords();
 
    Lexer self = {
-      .file_path = file_path
+      .file_path = file_path,
+      .full_path = full_path
    };
 
-   FILE* handle = fopen(file_path, "rb");
+   FILE* handle = fopen(self.full_path, "rb");
    if (handle == nullptr)
       panic("[!] Failed to open file \"%s\", reason: \"%s\"", strerror(errno));
 
@@ -125,6 +198,7 @@ void Lexer_delete(Lexer* self) {
 
    Vector_free(&self->new_line_indices);
    mcu_free(self->file_contents);
+   mcu_free(self->full_path);
    *self = (Lexer) {0};
 }
 
@@ -143,7 +217,8 @@ static bool word_allowed(char c) {
       c != '-' &&
       c != ' ' &&
       c != '\t' &&
-      c != '\n'
+      c != '\n' &&
+      c != '.'
    );
 }
 
@@ -170,6 +245,7 @@ static inline Token Lexer_next_impl(Lexer* self) {
             switch (self->current) {
                case '+': token.type = TT_Add; return token;
                case '*': token.type = TT_Mul; return token;
+               case '.': token.type = TT_Dot; return token;
 
                case '-': {
                   if (!(self->peek >= '0' && self->peek <= '9')) {

@@ -57,9 +57,7 @@ static i32 execute_command_impl(bool echo, bool suppress, const cstr format, ...
    return result;
 }
 
-static FILE* get_file_handle(bool asm_dump) {
-   if (asm_dump) return stdout;
-
+static FILE* get_file_handle() {
    FILE* handle = fopen("./output.asm", "w");
    if (handle == nullptr)
       panic("[!] Failed to open file \"./output.asm\", reason: \"%s\"", strerror(errno));
@@ -84,6 +82,10 @@ static void outwrite(FILE* handle, const cstr format, ...) {
    va_end(args);
 }
 
+static inline Lexer* get_lexer(IR* ir, u16 lexer_i) {
+   return Vector_get(&ir->Lexers, lexer_i);
+}
+
 i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_time) {
    mcu_assert(ir != nullptr, "ir can't be null");
    mcu_assert(code_gen_time != nullptr, "code_gen_time can't be null");
@@ -92,18 +94,15 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
    struct timespec timer;
    clock_start(&timer);
 
-   // @Todo: Look into whether or not we should use DEFAULT REL for our NASM generation
-   //        - Yuumei-02, 12-07-2026 15:32
-   FILE* handle = get_file_handle(asm_dump);
+   FILE* handle = get_file_handle();
    outwrite(handle,
+      "DEFAULT REL\n"
       "BITS 64\n"
       "global _start\n"
       "section .text\n"
       "\n"
       "_start:\n"
       "   xor rbp, rbp\n"
-      "   and rsp, -16\n"
-      "   sub rsp, 8\n"
       "   call main\n"
       "   mov eax, 60\n"
       "   xor edi, edi\n"
@@ -204,8 +203,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
                   "   add rsp, 8\n",
                   (i32) instr->word.length, instr->word.chars);
             } else {
-               outwrite(handle,
-                  "   call %.*s\n",
+               outwrite(handle, "   call %.*s\n",
                   (i32) instr->word.length, instr->word.chars);
             }
          } continue;
@@ -258,9 +256,9 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
          case IIK_Swap: {
             outwrite(handle,
-               "   pop rbx\n"
+               "   pop rdi\n"
                "   pop rax\n"
-               "   push rbx\n"
+               "   push rdi\n"
                "   push rax\n");
          } continue;
 
@@ -279,23 +277,23 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
          case IIK_Mul: {
             stack_element_count--;
             outwrite(handle,
-               "   pop rbx\n"
+               "   pop rdi\n"
                "   pop rax\n");
             switch (instr->kind) {
-               case IIK_Add: outwrite(handle, "   add rax, rbx\n");  break;
-               case IIK_Sub: outwrite(handle, "   sub rax, rbx\n");  break;
-               case IIK_Mul: outwrite(handle, "   imul rax, rbx\n"); break;
+               case IIK_Add: outwrite(handle, "   add rax, rdi\n");  break;
+               case IIK_Sub: outwrite(handle, "   sub rax, rdi\n");  break;
+               case IIK_Mul: outwrite(handle, "   imul rax, rdi\n"); break;
                
                case IIK_Idiv: {
                   outwrite(handle,
                      "   cqo\n"
-                     "   idiv rbx\n");
+                     "   idiv rdi\n");
                } break;
 
                case IIK_Udiv: {
                   outwrite(handle,
                      "   xor rdx, rdx\n"
-                     "   div rbx\n");
+                     "   div rdi\n");
                } break;
                
                default: panic("unreachable");
@@ -328,12 +326,8 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
       panic("unreachable");
    }
 
-   outwrite(handle, "section .data\n");
+   outwrite(handle, "section .rodata\n");
 
-   // @Todo: I don't know if there is a better way to do this but
-   //        this method Seems really slow to me.
-   //        We should look into whether or not this is a good method.
-   //        - Yuumei-02, 12-07-2026 20:33
    foreach (ir->string_literals, i) {
       String* str = Vector_get(&ir->string_literals, i);
       outwrite(handle, "addr%zu: db ", i);
@@ -349,12 +343,15 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
    close_file_handle(handle, asm_dump);
    *code_gen_time = clock_end(&timer);
 
+   if (asm_dump) return 0;
+
    clock_start(&timer);
+
    if (execute_command("nasm -felf64 ./output.asm"))  goto failure;
    if (execute_command("ld ./output.o -o ./output"))  goto failure;
    if (execute_command("rm ./output.asm ./output.o")) goto failure;
-   *linker_time = clock_end(&timer);
 
+   *linker_time = clock_end(&timer);
    return 0;
 
 failure:

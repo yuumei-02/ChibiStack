@@ -2,7 +2,7 @@
 ;; See the LICENSE file for more information.
 
 (defvar chibistack-mode-keywords 
-   '("proc" "begin" "end" "syscall0" "syscall1" "syscall2" "syscall3" "syscall4" "syscall5" "syscall5")
+   '("proc" "begin" "end" "syscall0" "syscall1" "syscall2" "syscall3" "syscall4" "syscall5" "syscall5" "#include")
    "Chibistack keywords")
 
 (defvar chibistack-mode-types 

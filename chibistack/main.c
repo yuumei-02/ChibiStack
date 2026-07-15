@@ -12,7 +12,7 @@
 #include "x86_codegen.h"
 
 double token_dump(cstr file) {
-   Lexer lexer = Lexer_new(file);
+   Lexer lexer = Lexer_new(file, nullptr);
    Token token;
    double lexer_time = 0.0f;
    

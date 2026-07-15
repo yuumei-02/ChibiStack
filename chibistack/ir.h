@@ -33,12 +33,11 @@ typedef enum : u16 {
    IIK_Puti
 } IrInstrKind;
 
-// @Todo: Create a proper symbol table so that you can keep the IrInstr struct small.
 typedef struct {
    union {
       i64 int_value;
       u64 uint_value;
-      StringView word;    // Ouch! This is a nasty alignment penalty.
+      StringView word;
    };
 
    u32 z;

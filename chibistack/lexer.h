@@ -11,20 +11,25 @@ typedef struct {
 typedef enum : i32 {
    TT_Eof,
 
+   // Stack manipulators
    TT_Drop,
    TT_Swap,
    TT_Dup,
-   
+
+   // Operators
    TT_Add,
    TT_Sub,
    TT_Idiv,
    TT_Udiv,
    TT_Mul,
+   TT_Dot,
 
+   // Literals
    TT_Word,
    TT_IntLiteral,
    TT_StrLiteral,
 
+   // Intrinsiccs
    TT_Syscall0,
    TT_Syscall1,
    TT_Syscall2,
@@ -33,9 +38,13 @@ typedef enum : i32 {
    TT_Syscall5,
    TT_Syscall6,
 
+   // Keywords
    TT_Proc,
    TT_Begin,
    TT_End,
+
+   // Compiler directives
+   TT_Include,
 
    // Temporary instrinsic procedures
    TT_Puti
@@ -63,13 +72,22 @@ typedef enum {
 typedef struct {
    Vector new_line_indices;
    cstr file_path;
+   cstr full_path;
    cstr file_contents;
    u32 z;
    i32 current;
    i32 peek;
 } Lexer;
 
-Lexer Lexer_new(cstr file_path);
+typedef enum {
+   FVR_Ok,
+   FVR_AlreadyIncluded,
+   FVR_Invalid
+} FileValidationResult;
+
+FileValidationResult validate_file(cstr file_path, nullable cstr relative_to, cstr* full_path);
+
+Lexer Lexer_new(cstr file_path, cstr full_path);
 void Lexer_delete(Lexer* self);
 
 Token Lexer_next(Lexer* self, double* lexer_time);

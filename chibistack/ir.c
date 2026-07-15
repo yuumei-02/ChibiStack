@@ -4,6 +4,7 @@
 #include <mcu/core.h>
 #include <mcu/io.h>
 #include <mcu/containers.h>
+#include <mcu/memory.h>
 
 #include "lexer.h"
 #include "ir.h"
@@ -12,28 +13,28 @@
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {
-      case IIK_PushInt:   return "PushInt";
-      case IIK_PushUint:  return "PushUint";
-      case IIK_PushAddr:  return "PushAddr";
-      case IIK_Drop:      return "Drop";
-      case IIK_Swap:      return "Swap";
-      case IIK_Dup:       return "Dup";
-      case IIK_Add:       return "Add";
-      case IIK_Sub:       return "Sub";
-      case IIK_Idiv:      return "Idiv";
-      case IIK_Udiv:      return "Udiv";
-      case IIK_Mul:       return "Mul";
-      case IIK_Syscall0:  return "Syscall0";
-      case IIK_Syscall1:  return "Syscall1";
-      case IIK_Syscall2:  return "Syscall2";
-      case IIK_Syscall3:  return "Syscall3";
-      case IIK_Syscall4:  return "Syscall4";
-      case IIK_Syscall5:  return "Syscall5";
-      case IIK_Syscall6:  return "Syscall6";
-      case IIK_ProcBegin: return "ProcBegin";
-      case IIK_ProcEnd:   return "ProcEnd";
-      case IIK_ProcCall:  return "ProcCall";
-      case IIK_Puti:      return "Puti";
+      case IIK_PushInt:     return "PushInt";
+      case IIK_PushUint:    return "PushUint";
+      case IIK_PushAddr:    return "PushAddr";
+      case IIK_Drop:        return "Drop";
+      case IIK_Swap:        return "Swap";
+      case IIK_Dup:         return "Dup";
+      case IIK_Add:         return "Add";
+      case IIK_Sub:         return "Sub";
+      case IIK_Idiv:        return "Idiv";
+      case IIK_Udiv:        return "Udiv";
+      case IIK_Mul:         return "Mul";
+      case IIK_Syscall0:    return "Syscall0";
+      case IIK_Syscall1:    return "Syscall1";
+      case IIK_Syscall2:    return "Syscall2";
+      case IIK_Syscall3:    return "Syscall3";
+      case IIK_Syscall4:    return "Syscall4";
+      case IIK_Syscall5:    return "Syscall5";
+      case IIK_Syscall6:    return "Syscall6";
+      case IIK_ProcBegin:   return "ProcBegin";
+      case IIK_ProcEnd:     return "ProcEnd";
+      case IIK_ProcCall:    return "ProcCall";
+      case IIK_Puti:        return "Puti";
    }
 
    return "Unknown";
@@ -53,6 +54,15 @@ static inline void enter_panic(ParsingState* state) {
 static inline void exit_panic(ParsingState* state) {
    state->panic = false;
 }
+
+// @Note: We technically leak memory whenever we discard a StringLiteral token.
+//        String literals allocate a string on the heap which we don't free on discard.
+//        They are freed however when they make it into the IR as the IR cleans up it's strings
+//        after finishing codegen.
+//        This leakage is fine as the program is not long lifed and
+//        the leakage only occurs when we encounter a String literal unexpectedly.
+//        It would be nice to fix this at some point however.
+//        - Yuumei-02, 13-07-2026 22:47
 
 static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
    #define push_instr(instruction_kind) { \
@@ -155,12 +165,81 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    Vector_push_create(&ir->IrInstructions, ((IrInstr) {
       .kind = IIK_ProcBegin,
       .z = token.z,
+      .lexer = lexer_i,
       .word = name
    }));
    Vector_push_create(&ir->IrInstructions, ((IrInstr) {
       .kind = IIK_ProcEnd,
-      .z = parse_code_block(ir, lexer, lexer_i, state)
+      .z = parse_code_block(ir, lexer, lexer_i, state),
+      .lexer = lexer_i
    }));
+}
+
+void parse_module(Lexer* origin, u32 origin_z, cstr file, nullable cstr relative_to, IR* ir, ParsingState* state) {
+   cstr full_path;
+   FileValidationResult file_validation = validate_file(file, relative_to, &full_path);
+
+   switch (file_validation) {
+      case FVR_Invalid: {
+         mcu_assert(origin != nullptr, "origin can't be null");
+         Loc loc = Lexer_loc_from_offset(origin, origin_z);
+         eprintln("%s:%u:%u: error: File \"%s\" does not exist", origin->file_path, loc.y, loc.x, file);
+         mcu_free(full_path);
+      } return;
+
+      case FVR_AlreadyIncluded: {
+         mcu_free(full_path);
+      } return;
+
+      case FVR_Ok: goto file_not_included_yet;
+   }
+
+   panic("unreachable");
+file_not_included_yet:
+
+   {
+      Lexer lexer = Lexer_new(file, full_path);
+      Vector_push(&ir->Lexers, &lexer);
+   }
+
+   u32 lexer_i = (u32) (ir->Lexers.length - 1);
+   Lexer* lexer = Vector_get(&ir->Lexers, ir->Lexers.length - 1);
+
+   loop {
+      Token token = Lexer_next(lexer, state->lexer_time);
+
+   rehandle_token:
+      switch (token.type) {
+         case TT_Include: {
+            exit_panic(state);
+            token = Lexer_next(lexer, state->lexer_time);
+            if (token.type != TT_StrLiteral) {
+               enter_panic(state);
+               report_unexpected_token_expected(lexer, token, TT_StrLiteral);
+               goto rehandle_token;
+            }
+
+            // @Note: Don't free the memory of StringLiteral as the lexer takes ownership over it.
+            parse_module(lexer, token.z, token.str_literal.chars, file, ir, state);
+         } break;
+      
+         case TT_Proc: {
+            exit_panic(state);
+            parse_procedure(ir, lexer, lexer_i, state);
+         } break;
+      
+         case TT_Eof: {
+            exit_panic(state);
+         } goto finish_parsing;
+
+         default: {
+            if (state->panic) break;
+            report_unexpected_token_expected(lexer, token, TT_Proc);
+            enter_panic(state);
+         }
+      }
+   }
+finish_parsing:
 }
 
 IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
@@ -179,31 +258,12 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
       .string_literals = Vector_new(sizeof(String))
    };
 
-   Vector_push_create(&self.Lexers, (Lexer_new(file)));
-   u32 lexer_i = (u32) (self.Lexers.length - 1);
-   Lexer* lexer = Vector_get(&self.Lexers, self.Lexers.length - 1);
-   ParsingState state = { .lexer_time = lexer_time };
+   ParsingState state = {
+      .lexer_time = lexer_time
+   };
 
-   loop {
-      Token token = Lexer_next(lexer, lexer_time);
+   parse_module(nullptr, 0, file, nullptr, &self, &state);
 
-      switch (token.type) {
-         case TT_Proc: {
-            state.panic = false;
-            parse_procedure(&self, lexer, lexer_i, &state);
-         } break;
-      
-         case TT_Eof: goto finish_parsing;
-         default: {
-            if (state.panic) break;
-            report_unexpected_token_expected(lexer, token, TT_Proc);
-            state.panic = true;
-            state.failure = true;
-         }
-      }
-   }
-
-finish_parsing:
    *failure = state.failure;
    *ir_time = clock_end(&timer);
    return self;
