@@ -182,24 +182,29 @@ static Type* get_type_from_word(IR* ir, Token token) {
    return type;
 }
 
-static void parse_procedure_parameters(IR* ir, Lexer* lexer, ParsingState* state) {
+static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, ParsingState* state) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
       report_unexpected_token_expected(lexer, token, TT_Word);
       enter_panic(state);
-      return;
+      return (String) {0};
    }
 
    Type* type = get_type_from_word(ir, token);
    if (type == nullptr) {
       report_unknown_type(lexer, token);
       enter_panic(state);
-      return;
+      return (String) {0};
    }
 
-   Vector return_types = Vector_new(sizeof(u32));
-   Vector parameter_types = Vector_new(sizeof(u32));
-   Vector_push(&parameter_types, &type->type_id);
+   Vector return_types = Vector_new(sizeof(TypeInfo));
+   Vector parameter_types = Vector_new(sizeof(TypeInfo));
+   Vector_push_create(&parameter_types, ((TypeInfo) {
+      .lexer_i = lexer_i,
+      .id = type->type_id,
+      .offset = token.z,
+      .name = type->name
+   }));
    String type_signature = String_from_sv(token.str_view);
 
    bool parsing_parameter_types = true;
@@ -215,9 +220,16 @@ static void parse_procedure_parameters(IR* ir, Lexer* lexer, ParsingState* state
                goto failure;
             }
 
+            TypeInfo type_info = {
+               .lexer_i = lexer_i,
+               .id = type->type_id,
+               .offset = token.z,
+               .name = type->name
+            };
+
             switch (parsing_parameter_types) {
-               case true:  Vector_push(&parameter_types, &type->type_id); break;
-               case false: Vector_push(&return_types, &type->type_id);    break;
+               case true:  Vector_push(&parameter_types, &type_info); break;
+               case false: Vector_push(&return_types, &type_info);    break;
             }
 
             String_append(&type_signature, ' ');
@@ -239,14 +251,14 @@ static void parse_procedure_parameters(IR* ir, Lexer* lexer, ParsingState* state
             HashMap_put(Type)(&ir->type_table, type_signature.chars, (Type) {
                .kind = TK_Proc,
                .type_id = next_type_id++,
+               .name = type_signature.chars,
                .proc = {
                   .parameter_types = parameter_types,
                   .return_types = return_types
                }
             });
 
-            String_free(&type_signature);
-            return;
+            return type_signature;
          } break;
       
          default: {
@@ -257,12 +269,14 @@ static void parse_procedure_parameters(IR* ir, Lexer* lexer, ParsingState* state
       }
    }
 
-   return;
+   panic("unreachable");
 
 failure:
    String_free(&type_signature);
    Vector_free(&parameter_types);
    Vector_free(&return_types);
+
+   return (String) {0};
 }
 
 static void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* state) {
@@ -274,15 +288,14 @@ static void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* sta
    }
 
    StringView name = token.str_view;
+   String signature = (String) {0};
 
    token = Lexer_next(lexer, state->lexer_time);
    switch (token.type) {
-      case TT_Begin: {
-         
-      } goto begin_procedure_body;
+      case TT_Begin: goto begin_procedure_body;
 
       case TT_With: {
-         parse_procedure_parameters(ir, lexer, state);
+         signature = parse_procedure_parameters(ir, lexer, lexer_i, state);
          if (state->panic) return;
       } goto begin_procedure_body;
 
@@ -297,7 +310,10 @@ begin_procedure_body:
    char tmp = name.chars[name.length];
    name.chars[name.length] = '\0';
    HashMap_put(Symbol)(&ir->symbol_table, name.chars, (Symbol) {
-      .kind = SK_Proc
+      .kind = SK_Proc,
+      .proc = {
+         .signature = signature
+      }
    });
    name.chars[name.length] = tmp;
 
@@ -310,7 +326,8 @@ begin_procedure_body:
    Vector_push_create(&ir->IrInstructions, ((IrInstr) {
       .kind = IIK_ProcEnd,
       .z = parse_code_block(ir, lexer, lexer_i, state),
-      .lexer = lexer_i
+      .lexer = lexer_i,
+      .word = name
    }));
 }
 
@@ -398,20 +415,17 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
       .string_literals = Vector_new(sizeof(String))
    };
 
-   HashMap_put(Type)(&self.type_table, void_type.name, (Type) { .kind = TK_Void, .type_id = void_type.id });
-   HashMap_put(Type)(&self.type_table, int_type.name,  (Type) { .kind = TK_Int, .type_id = int_type.id, .integer = {
-      .is_signed = true,
-      .bits = BIT64
-   }});
-   HashMap_put(Type)(&self.type_table, uint_type.name, (Type) { .kind = TK_Int, .type_id = uint_type.id, .integer = {
-      .is_signed = false,
-      .bits = BIT64
-   }});
-   HashMap_put(Type)(&self.type_table, ptr_type.name, (Type) { .kind = TK_Ptr, .type_id = ptr_type.id });
-   HashMap_put(Type)(&self.type_table, void_proc_type.name, (Type) { .kind = TK_Proc, .type_id = void_proc_type.id, .proc = {
+   #define create_type(type_name, ...) \
+      HashMap_put(Type)(&self.type_table, type_name, (Type) { .name = type_name __VA_OPT__(,) __VA_ARGS__ })
+
+   create_type(void_type.name, .kind = TK_Void, .type_id = void_type.id);
+   create_type(int_type.name,  .kind = TK_Int,  .type_id = int_type.id,  .integer = { .is_signed = true,  .bits = BIT64 });
+   create_type(uint_type.name, .kind = TK_Int,  .type_id = uint_type.id, .integer = { .is_signed = false, .bits = BIT64 });
+   create_type(ptr_type.name,  .kind = TK_Ptr,  .type_id = ptr_type.id);
+   create_type(void_proc_type.name, .kind = TK_Proc, .type_id = void_proc_type.id, .proc = {
       .parameter_types = Vector_new(sizeof(u32)),
       .return_types = Vector_new(sizeof(u32))
-   }});
+   });
 
    ParsingState state = {
       .lexer_time = lexer_time

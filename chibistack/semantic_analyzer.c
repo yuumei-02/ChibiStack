@@ -10,6 +10,7 @@
 #include "lexer.h"
 #include "ir.h"
 #include "reporter.h"
+#include "utils.h"
 
 extern TypeInfo int_type;
 extern TypeInfo uint_type;
@@ -193,10 +194,36 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
 
          case IIK_ProcBegin: {
             starting_stack_size = type_stack.length;
+
+            char tmp = sv_tmp_nullify(instr->word);
+            Symbol* symbol = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            sv_tmp_restore(instr->word, tmp);
+            mcu_assert(symbol != nullptr, "The compilation should've already terminated in this case");
+            mcu_assert(symbol->kind == SK_Proc, "Unreachable");
+
+            // A zeroed signatures means it is a void proc
+            if (symbol->proc.signature.capacity < 1)
+               continue;
+
+            Type* type = HashMap_get(Type)(&ir->type_table, symbol->proc.signature.chars);
+            mcu_assert(type != nullptr, "Unreachable");
+            mcu_assert(type->kind == TK_Proc, "Unreachable");
+
+            for (isize i = (isize) type->proc.parameter_types.length - 1; i >= 0; --i) {
+               TypeInfo* parameter_type = Vector_get(&type->proc.parameter_types, (usize) i);
+               Vector_push(&type_stack, parameter_type);
+            }
          } continue;
 
          case IIK_ProcEnd: {
-            if (type_stack.length != starting_stack_size) {
+            char tmp = sv_tmp_nullify(instr->word);
+            Symbol* symbol = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            sv_tmp_restore(instr->word, tmp);
+
+            if (symbol->proc.signature.capacity < 1) continue;
+            Type* type = HashMap_get(Type)(&ir->type_table, symbol->proc.signature.chars);
+         
+            if (type_stack.length != starting_stack_size + type->proc.return_types.length) {
                report_unhandled_stack_items((i32) type_stack.length - (i32) starting_stack_size,
                   get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
                goto failure;

@@ -61,6 +61,7 @@ typedef enum {
 typedef struct {
    TypeKind kind;
    u32 type_id;
+   cstr name;
 
    union {
       struct {
@@ -91,7 +92,7 @@ typedef struct {
 
    union {
       struct {
-         u32 type_id;
+         String signature;
       } proc;
    };
 } Symbol;

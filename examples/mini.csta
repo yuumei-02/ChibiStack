@@ -4,7 +4,7 @@
 // This file is not an example but rather a testing ground
 // for developing the compiler.
 
-#include "../std/syscalls.csta"
+// #include "../std/syscalls.csta"
 
 proc addmul with
    int int int
