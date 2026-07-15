@@ -310,6 +310,7 @@ void IR_delete(IR* self) {
       String_free(str);
    }
 
+   // @Todo: Deallocate the type and symbol table children as well.
    HashMap_free(Type)(&self->type_table);
    HashMap_free(Symbol)(&self->symbol_table);
    Vector_free(&self->Lexers);

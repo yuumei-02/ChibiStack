@@ -6,15 +6,16 @@
 
 #include "../std/syscalls.csta"
 
-proc add begin
-   35 34 + puti
-   "\n" 1 1 syscall3
-   drop
+proc addmul with
+   int int int
+   ---
+   int
+begin
+   mul +
 end
 
 proc main begin
    "Zhyivannye miratte!\n" 1 1 syscall3 drop
-   add
-   write
+   5 5 2 addmul puti
 end
 

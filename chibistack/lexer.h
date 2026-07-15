@@ -40,6 +40,8 @@ typedef enum : i32 {
 
    // Keywords
    TT_Proc,
+   TT_With,
+   TT_Bikeshedder,
    TT_Begin,
    TT_End,
 

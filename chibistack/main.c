@@ -4,6 +4,7 @@
 #include <mcu/core.h>
 #include <mcu/handlers.h>
 #include <mcu/io.h>
+#include <mcu/memory.h>
 
 #include "flags.h"
 #include "lexer.h"
@@ -12,7 +13,20 @@
 #include "x86_codegen.h"
 
 double token_dump(cstr file) {
-   Lexer lexer = Lexer_new(file, nullptr);
+   cstr full_path;
+   FileValidationResult result = validate_file(file, nullptr, &full_path);
+   switch (result) {
+      case FVR_Ok: break;
+
+      case FVR_Invalid: {
+         eprintln("[!] File \"%s\" does not exist", file);
+         mcu_free(full_path);
+      } return 0.0f;
+
+      default: panic("unreachable");
+   }
+   
+   Lexer lexer = Lexer_new(file, full_path);
    Token token;
    double lexer_time = 0.0f;
    

@@ -47,8 +47,31 @@ typedef struct {
    IrInstrKind kind;
 } IrInstr;
 
+typedef enum {
+   BIT64
+} BitLength;
+
+typedef enum {
+   TK_Int,
+   TK_Ptr,
+   TIK_Proc
+} TypeKind;
+
 typedef struct {
+   TypeKind kind;
    u32 type_id;
+
+   union {
+      struct {
+         bool is_signed;
+         BitLength bits;
+      } integer;
+
+      struct {
+         Vector parameter_types;
+         Vector return_types;
+      } proc;
+   };
 } Type;
 
 typedef enum {
@@ -57,6 +80,12 @@ typedef enum {
 
 typedef struct {
    SymbolKind kind;
+
+   union {
+      struct {
+         u32 type_id;
+      } proc;
+   };
 } Symbol;
 
 HashMap_hdr(Type)

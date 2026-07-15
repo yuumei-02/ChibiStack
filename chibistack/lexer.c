@@ -92,31 +92,33 @@ relative_failure:
 
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
-      case TT_Eof:        return "Eof";
-      case TT_Drop:       return "Drop";
-      case TT_Swap:       return "Swap";
-      case TT_Dup:        return "Dup";
-      case TT_Add:        return "Add";
-      case TT_Sub:        return "Sub";
-      case TT_Idiv:       return "Idiv";
-      case TT_Udiv:       return "Udiv";
-      case TT_Mul:        return "Mul";
-      case TT_Dot:        return "Dot";
-      case TT_Word:       return "Word";
-      case TT_IntLiteral: return "IntLiteral";
-      case TT_StrLiteral: return "StrLiteral";
-      case TT_Syscall0:   return "Syscall0";
-      case TT_Syscall1:   return "Syscall1";
-      case TT_Syscall2:   return "Syscall2";
-      case TT_Syscall3:   return "Syscall3";
-      case TT_Syscall4:   return "Syscall4";
-      case TT_Syscall5:   return "Syscall5";
-      case TT_Syscall6:   return "Syscall6";
-      case TT_Proc:       return "Proc";
-      case TT_Begin:      return "Begin";
-      case TT_End:        return "End";
-      case TT_Include:    return "#include";
-      case TT_Puti:       return "Puti";
+      case TT_Eof:         return "Eof";
+      case TT_Drop:        return "Drop";
+      case TT_Swap:        return "Swap";
+      case TT_Dup:         return "Dup";
+      case TT_Add:         return "Add";
+      case TT_Sub:         return "Sub";
+      case TT_Idiv:        return "Idiv";
+      case TT_Udiv:        return "Udiv";
+      case TT_Mul:         return "Mul";
+      case TT_Dot:         return "Dot";
+      case TT_Word:        return "Word";
+      case TT_IntLiteral:  return "IntLiteral";
+      case TT_StrLiteral:  return "StrLiteral";
+      case TT_Syscall0:    return "Syscall0";
+      case TT_Syscall1:    return "Syscall1";
+      case TT_Syscall2:    return "Syscall2";
+      case TT_Syscall3:    return "Syscall3";
+      case TT_Syscall4:    return "Syscall4";
+      case TT_Syscall5:    return "Syscall5";
+      case TT_Syscall6:    return "Syscall6";
+      case TT_Proc:        return "Proc";
+      case TT_With:        return "With";
+      case TT_Bikeshedder: return "---";
+      case TT_Begin:       return "Begin";
+      case TT_End:         return "End";
+      case TT_Include:     return "#include";
+      case TT_Puti:        return "Puti";
    }
 
    return "Unknown";
@@ -141,9 +143,10 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "syscall5", TT_Syscall5);
    HashMap_put(TokenType)(&G_keywords, "syscall6", TT_Syscall6);
    HashMap_put(TokenType)(&G_keywords, "proc",     TT_Proc);
+   HashMap_put(TokenType)(&G_keywords, "with",     TT_With);
    HashMap_put(TokenType)(&G_keywords, "begin",    TT_Begin);
    HashMap_put(TokenType)(&G_keywords, "end",      TT_End);
-   HashMap_put(TokenType)(&G_keywords, "#include",  TT_Include);
+   HashMap_put(TokenType)(&G_keywords, "#include", TT_Include);
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
@@ -211,6 +214,10 @@ static inline void Lexer_advance(Lexer* self) {
    self->peek = self->file_contents[self->z++];
 }
 
+static inline char Lexer_peek(Lexer* self) {
+   return self->file_contents[self->z];
+}
+
 static bool word_allowed(char c) {
    return (
       c != '+' &&
@@ -248,12 +255,28 @@ static inline Token Lexer_next_impl(Lexer* self) {
                case '.': token.type = TT_Dot; return token;
 
                case '-': {
-                  if (!(self->peek >= '0' && self->peek <= '9')) {
-                     token.type = TT_Sub;
-                     return token;
-                  } else {
-                     num_is_negative = true;
-                     mode = LM_IntLiteral;
+                  switch (self->peek) {
+                     case '-': {
+                        if (Lexer_peek(self) == '-') {
+                           Lexer_advance(self);
+                           Lexer_advance(self);
+                           token.type = TT_Bikeshedder;
+                           return token;
+                        }
+
+                        token.type = TT_Sub;
+                        return token;
+                     } break;
+                  
+                     default: {
+                        if (!(self->peek >= '0' && self->peek <= '9')) {
+                           token.type = TT_Sub;
+                           return token;
+                        } else {
+                           num_is_negative = true;
+                           mode = LM_IntLiteral;
+                        }
+                     } break;
                   }
                } break;
 
