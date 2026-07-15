@@ -104,8 +104,6 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
       "\n"
       "_start:\n"
       "   xor rbp, rbp\n"
-      "   and rsp, -16\n"
-      "   sub rsp, 8\n"
       "   call main\n"
       "   mov eax, 60\n"
       "   xor edi, edi\n"
@@ -259,9 +257,9 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
          case IIK_Swap: {
             outwrite(handle,
-               "   pop rbx\n"
+               "   pop rdi\n"
                "   pop rax\n"
-               "   push rbx\n"
+               "   push rdi\n"
                "   push rax\n");
          } continue;
 
@@ -280,23 +278,23 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
          case IIK_Mul: {
             stack_element_count--;
             outwrite(handle,
-               "   pop rbx\n"
+               "   pop rdi\n"
                "   pop rax\n");
             switch (instr->kind) {
-               case IIK_Add: outwrite(handle, "   add rax, rbx\n");  break;
-               case IIK_Sub: outwrite(handle, "   sub rax, rbx\n");  break;
-               case IIK_Mul: outwrite(handle, "   imul rax, rbx\n"); break;
+               case IIK_Add: outwrite(handle, "   add rax, rdi\n");  break;
+               case IIK_Sub: outwrite(handle, "   sub rax, rdi\n");  break;
+               case IIK_Mul: outwrite(handle, "   imul rax, rdi\n"); break;
                
                case IIK_Idiv: {
                   outwrite(handle,
                      "   cqo\n"
-                     "   idiv rbx\n");
+                     "   idiv rdi\n");
                } break;
 
                case IIK_Udiv: {
                   outwrite(handle,
                      "   xor rdx, rdx\n"
-                     "   div rbx\n");
+                     "   div rdi\n");
                } break;
                
                default: panic("unreachable");
