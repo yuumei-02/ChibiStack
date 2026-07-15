@@ -418,7 +418,7 @@ Loc Lexer_loc_from_offset(Lexer* self, u32 offset) {
    foreach (self->new_line_indices, i) {
       u32 new_line = *(u32*) Vector_get(&self->new_line_indices, i);
 
-      if (new_line < offset) {
+      if (new_line + 2 < offset) {
          loc.y++;
          subtract = new_line + 2;
       } else {

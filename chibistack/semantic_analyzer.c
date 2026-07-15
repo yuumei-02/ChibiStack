@@ -57,28 +57,28 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
       switch (instr->kind) {
          case IIK_PushInt: {
             Vector_push_create(&type_stack, ((TypeInfo) {
-               .id = int_type.id,
-               .name = int_type.name,
                .lexer_i = instr->lexer,
-               .offset = instr->z
+               .id = int_type.id,
+               .offset = instr->z,
+               .name = int_type.name
             }));
          } continue;
 
          case IIK_PushUint: {
             Vector_push_create(&type_stack, ((TypeInfo) {
-               .id = uint_type.id,
-               .name = uint_type.name,
                .lexer_i = instr->lexer,
-               .offset = instr->z
+               .id = uint_type.id,
+               .offset = instr->z,
+               .name = uint_type.name
             }));
          } continue;
 
          case IIK_PushAddr: {
             Vector_push_create(&type_stack, ((TypeInfo) {
-               .id = ptr_type.id,
-               .name = ptr_type.name,
                .lexer_i = instr->lexer,
-               .offset = instr->z
+               .id = ptr_type.id,
+               .offset = instr->z,
+               .name = ptr_type.name
             }));
          } continue;
 
@@ -118,8 +118,9 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             TypeInfo a = *(TypeInfo*) Vector_pop(&type_stack);
 
             if (a.id != b.id) {
+               Lexer* lexi = get_lexer_from_lexer_id(&ir->Lexers, instr->lexer);
                report_incompatible_binop_types(instr->kind, a.name, b.name,
-                  get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
+                  lexi, instr->z);
                goto failure;
             }
 
@@ -222,12 +223,14 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
 
             if (symbol->proc.signature.capacity < 1) continue;
             Type* type = HashMap_get(Type)(&ir->type_table, symbol->proc.signature.chars);
-         
+
             if (type_stack.length != starting_stack_size + type->proc.return_types.length) {
                report_unhandled_stack_items((i32) type_stack.length - (i32) starting_stack_size,
                   get_lexer_from_lexer_id(&ir->Lexers, instr->lexer), instr->z);
                goto failure;
             }
+
+            type_stack.length -= type->proc.return_types.length;
          } continue;
 
          // @Todo: Check if the procedure exist in scope.

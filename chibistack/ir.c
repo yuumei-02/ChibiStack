@@ -182,7 +182,7 @@ static Type* get_type_from_word(IR* ir, Token token) {
    return type;
 }
 
-static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, ParsingState* state) {
+static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, ParsingState* state, u32* begin_z) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
       report_unexpected_token_expected(lexer, token, TT_Word);
@@ -242,6 +242,8 @@ static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, Pars
          } break;
 
          case TT_Begin: {
+            *begin_z = token.z;
+         
             if (return_types.length < 1) {
                report_missing_return_type(lexer, token);
                enter_panic(state);
@@ -295,7 +297,7 @@ static void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* sta
       case TT_Begin: goto begin_procedure_body;
 
       case TT_With: {
-         signature = parse_procedure_parameters(ir, lexer, lexer_i, state);
+         signature = parse_procedure_parameters(ir, lexer, lexer_i, state, &token.z);
          if (state->panic) return;
       } goto begin_procedure_body;
 

@@ -7,7 +7,7 @@
 // #include "../std/syscalls.csta"
 
 proc addmul with
-   int uint uint
+   int int int
    ---
    int
 begin
@@ -17,5 +17,7 @@ end
 proc main begin
    "Zhyivannye miratte!\n" 1 1 syscall3 drop
    5 5 2 addmul puti
+
+   // "69420" +
 end
 
