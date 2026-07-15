@@ -19,10 +19,76 @@
 HashMap_hdr(TokenType)
 HashMap_impl(TokenType)
 
+HashMap_hdr(bool)
+HashMap_impl(bool)
+
 static HashMap(TokenType) G_keywords;
 static bool G_keywords_defined = false;
-
 static u32 tokens_parsed = 0;
+
+static HashMap(bool) G_included_files;
+static bool G_included_files_defined = false;
+
+static String path_strip_file(cstr path) {
+   mcu_assert(path != nullptr, "path can't be null");
+
+   String new_path = String_from(path);
+   for (isize i = new_path.length - 1; i >= 0; --i) {
+      if (new_path.chars[i] == '/') break;
+      String_pop(&new_path);
+   }
+
+   return new_path;
+}
+
+FileValidationResult validate_file(cstr file_path, nullable cstr relative_to, cstr* full_path) {
+   if (!G_included_files_defined) {
+      G_included_files = HashMap_new(bool)();
+      G_included_files_defined = true;
+   }
+
+   char cwd[PATH_MAX] = {0};
+
+   if (relative_to != nullptr) {
+      if (getcwd((cstr) &cwd, PATH_MAX) == nullptr) {
+         panic("[!] Failed to get the current working directory, reason: \"%s\"", strerror(errno));
+      }
+
+      String relative = path_strip_file(relative_to);
+      if (chdir(relative.chars) < 0) {
+         String_free(&relative);
+         goto relative_failure;
+      }
+      String_free(&relative);
+   }
+
+   *full_path = realpath(file_path, nullptr);
+   if (*full_path == nullptr) {
+      if (relative_to != nullptr) goto relative_failure;
+      return FVR_Invalid;
+   }
+
+   if (relative_to != nullptr) {
+      if (chdir(cwd) < 0) {
+         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+      }
+   }
+
+   bool* exist = HashMap_get(bool)(&G_included_files, *full_path);
+   if (exist != nullptr) {
+      return FVR_AlreadyIncluded;
+   }
+
+   HashMap_put(bool)(&G_included_files, *full_path, true);
+   return FVR_Ok;
+
+relative_failure:
+   if (chdir(cwd) < 0) {
+      panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
+   }
+
+   return FVR_Invalid;
+}
 
 const cstr TokenType_to_cstr(TokenType self) {
    switch (self) {
@@ -81,50 +147,13 @@ static void check_define_keywords() {
    HashMap_put(TokenType)(&G_keywords, "puti",     TT_Puti);
 }
 
-String path_strip_file(cstr path) {
-   mcu_assert(path != nullptr, "path can't be null");
-
-   String new_path = String_from(path);
-   for (isize i = new_path.length - 1; i >= 0; --i) {
-      if (new_path.chars[i] == '/') break;
-      String_pop(&new_path);
-   }
-
-   return new_path;
-}
-
-// @Todo: Add actual file IO error reporting.
-Lexer Lexer_new(cstr file_path, nullable cstr relative_to) {
+Lexer Lexer_new(cstr file_path, cstr full_path) {
    check_define_keywords();
-
-   char cwd[PATH_MAX] = {0};
-
-   if (relative_to != nullptr) {
-      if (getcwd((cstr) &cwd, PATH_MAX) == nullptr) {
-         panic("[!] Failed to get the current working directory, reason: \"%s\"", strerror(errno));
-      }
-
-      String relative = path_strip_file(relative_to);
-      if (chdir(relative.chars)) {
-         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
-      }
-      String_free(&relative);
-   }
 
    Lexer self = {
       .file_path = file_path,
-      .full_path = realpath(file_path, nullptr)
+      .full_path = full_path
    };
-
-   if (self.full_path == nullptr) {
-      panic("[!] Failed to expand file path \"%s\", reason: \"%s\"", file_path, strerror(errno));
-   }
-
-   if (relative_to != nullptr) {
-      if (chdir(cwd) < 0) {
-         panic("[!] Failed to change the current working directory, reason: \"%s\"", strerror(errno));
-      }
-   }
 
    FILE* handle = fopen(self.full_path, "rb");
    if (handle == nullptr)

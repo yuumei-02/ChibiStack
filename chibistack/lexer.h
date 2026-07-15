@@ -79,7 +79,15 @@ typedef struct {
    i32 peek;
 } Lexer;
 
-Lexer Lexer_new(cstr file_path, nullable cstr relative_to);
+typedef enum {
+   FVR_Ok,
+   FVR_AlreadyIncluded,
+   FVR_Invalid
+} FileValidationResult;
+
+FileValidationResult validate_file(cstr file_path, nullable cstr relative_to, cstr* full_path);
+
+Lexer Lexer_new(cstr file_path, cstr full_path);
 void Lexer_delete(Lexer* self);
 
 Token Lexer_next(Lexer* self, double* lexer_time);

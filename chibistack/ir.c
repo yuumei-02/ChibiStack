@@ -4,6 +4,7 @@
 #include <mcu/core.h>
 #include <mcu/io.h>
 #include <mcu/containers.h>
+#include <mcu/memory.h>
 
 #include "lexer.h"
 #include "ir.h"
@@ -174,9 +175,30 @@ static inline void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
    }));
 }
 
-void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* state) {
+void parse_module(Lexer* origin, u32 origin_z, cstr file, nullable cstr relative_to, IR* ir, ParsingState* state) {
+   cstr full_path;
+   FileValidationResult file_validation = validate_file(file, relative_to, &full_path);
+
+   switch (file_validation) {
+      case FVR_Invalid: {
+         mcu_assert(origin != nullptr, "origin can't be null");
+         Loc loc = Lexer_loc_from_offset(origin, origin_z);
+         eprintln("%s:%u:%u: error: File \"%s\" does not exist", origin->file_path, loc.y, loc.x, file);
+         mcu_free(full_path);
+      } return;
+
+      case FVR_AlreadyIncluded: {
+         mcu_free(full_path);
+      } return;
+
+      case FVR_Ok: goto file_not_included_yet;
+   }
+
+   panic("unreachable");
+file_not_included_yet:
+
    {
-      Lexer lexer = Lexer_new(file, relative_to);
+      Lexer lexer = Lexer_new(file, full_path);
       Vector_push(&ir->Lexers, &lexer);
    }
 
@@ -198,7 +220,7 @@ void parse_module(cstr file, nullable cstr relative_to, IR* ir, ParsingState* st
             }
 
             // @Note: Don't free the memory of StringLiteral as the lexer takes ownership over it.
-            parse_module(token.str_literal.chars, file, ir, state);
+            parse_module(lexer, token.z, token.str_literal.chars, file, ir, state);
          } break;
       
          case TT_Proc: {
@@ -240,7 +262,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
       .lexer_time = lexer_time
    };
 
-   parse_module(file, nullptr, &self, &state);
+   parse_module(nullptr, 0, file, nullptr, &self, &state);
 
    *failure = state.failure;
    *ir_time = clock_end(&timer);

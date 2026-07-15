@@ -94,10 +94,9 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
    struct timespec timer;
    clock_start(&timer);
 
-   // @Todo: Look into whether or not we should use DEFAULT REL for our NASM generation
-   //        - Yuumei-02, 12-07-2026 15:32
    FILE* handle = get_file_handle();
    outwrite(handle,
+      "DEFAULT REL\n"
       "BITS 64\n"
       "global _start\n"
       "section .text\n"
@@ -327,12 +326,8 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
       panic("unreachable");
    }
 
-   outwrite(handle, "section .data\n");
+   outwrite(handle, "section .rodata\n");
 
-   // @Todo: I don't know if there is a better way to do this but
-   //        this method Seems really slow to me.
-   //        We should look into whether or not this is a good method.
-   //        - Yuumei-02, 12-07-2026 20:33
    foreach (ir->string_literals, i) {
       String* str = Vector_get(&ir->string_literals, i);
       outwrite(handle, "addr%zu: db ", i);
