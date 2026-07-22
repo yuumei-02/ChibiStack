@@ -469,16 +469,24 @@ void IR_dump(IR* self) {
    foreach (self->IrInstructions, i) {
       IrInstr* instr = Vector_get(&self->IrInstructions, i);
 
-      Lexer* lexer = Vector_get(&self->Lexers, instr->lexer);
-      Loc loc = Lexer_loc_from_offset(lexer, instr->z);
-      printf("%s:%u:%u: info: %s",
-         lexer->file_path, loc.y, loc.x, IrInstrKind_to_cstr(instr->kind));
-
       switch (instr->kind) {
-         case IIK_PushInt:  println(" (%ld)", instr->int_value);  break;
-         case IIK_PushUint: println(" (%lu)", instr->uint_value); break;
-         case IIK_PushAddr: println(" (%lu)", instr->uint_value); break;
-         default: printf("\n");
+         case IIK_ProcBegin: {
+            println("proc @%.*s() {", (i32) instr->word.length, instr->word.chars);
+         } break;
+
+         case IIK_ProcEnd: {
+            println("}\n");
+         } break;
+
+         case IIK_ProcCall: println("   call @%.*s", (i32) instr->word.length, instr->word.chars); break;
+         case IIK_Puti:     println("   call @puti");                                              break;
+         case IIK_PushInt:  println("   push i64 %ld", instr->int_value);                          break;
+         case IIK_PushUint: println("   push u64 %lu", instr->uint_value);                         break;
+         case IIK_PushAddr: println("   push addr %lu", instr->uint_value);                        break;
+
+         default: {
+            println("   %s", IrInstrKind_to_cstr(instr->kind)); 
+         }
       }
    }
 }

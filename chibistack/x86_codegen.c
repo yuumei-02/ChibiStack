@@ -9,6 +9,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "utils.h"
 #include "lexer.h"
 #include "ir.h"
 #include "x86_codegen.h"
