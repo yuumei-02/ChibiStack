@@ -14,9 +14,20 @@ begin
    * +
 end
 
+proc print_type_id with
+   type
+   ---
+   void
+begin
+   puti
+   "\n" 1 1 syscall3 drop
+end
+
 proc main begin
    "Zhyivannye miratte!\n" 1 1 syscall3 drop
    2 3 5 addmul puti
    "\n" 1 1 syscall3 drop
+
+   ptr print_type_id
 end
 

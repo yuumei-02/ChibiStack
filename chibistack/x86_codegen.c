@@ -259,7 +259,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
             outwrite(handle, "   call puti\n");
             if (misaligned) outwrite(handle, "   add rsp, 8\n");
          } continue;
-      
+
          case IIK_PushInt: {
             stack_element_count++;
             if (!(instr->int_value >= 0x80000000 && instr->int_value <= 0x7FFFFFFF)) {
@@ -272,6 +272,7 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
             }
          } continue;
 
+         case IIK_PushType: [[fallthrough]];
          case IIK_PushUint: {
             stack_element_count++;
             if (instr->uint_value < 0x7FFFFFFF) {

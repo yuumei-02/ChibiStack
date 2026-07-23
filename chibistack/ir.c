@@ -17,15 +17,17 @@ HashMap_impl(Symbol)
 TypeInfo void_type      = { .id = 0, .name = "void" };
 TypeInfo int_type       = { .id = 1, .name = "int"  };
 TypeInfo uint_type      = { .id = 2, .name = "uint" };
-TypeInfo ptr_type       = { .id = 3, .name = "ptr"  };
-TypeInfo void_proc_type = { .id = 4, .name = "void --- void" };
-u32 next_type_id = 5;
+TypeInfo type_type      = { .id = 3, .name = "type" };
+TypeInfo ptr_type       = { .id = 4, .name = "ptr"  };
+TypeInfo void_proc_type = { .id = 5, .name = "void --- void" };
+u32 next_type_id = 6;
 
 const cstr IrInstrKind_to_cstr(IrInstrKind self) {
    switch (self) {           
       case IIK_PushInt:       return "PushInt";
       case IIK_PushUint:      return "PushUint";
       case IIK_PushAddr:      return "PushAddr";
+      case IIK_PushType:      return "PushType";
       case IIK_Drop:          return "Drop";
       case IIK_Swap:          return "Swap";
       case IIK_Dup:           return "Dup";
@@ -136,24 +138,31 @@ static inline u32 parse_code_block(IR* ir, Lexer* lexer, u32 lexer_i, ParsingSta
             char tmp = token.str_view.chars[token.str_view.length];
             token.str_view.chars[token.str_view.length] = '\0';
             Symbol* symbol = HashMap_get(Symbol)(&ir->symbol_table, token.str_view.chars);
-            token.str_view.chars[token.str_view.length] = tmp;
 
             if (symbol == nullptr) {
-               // @Todo: Look into the type table for the symbol and push it's type_id onto the stack
-               report_non_existant_word(lexer, token);
-               state->failure = true;
-               push_instr(IIK_InvalidSymbol)
-               break;
-            }
+               Type* type = HashMap_get(Type)(&ir->type_table, token.str_view.chars);
+               token.str_view.chars[token.str_view.length] = tmp;
+               if (type == nullptr) {
+                  report_non_existant_word(lexer, token);
+                  state->failure = true;
+                  push_instr(IIK_InvalidSymbol)
+                  continue;
+               }
 
-            switch (symbol->kind) {
-               case SK_Proc: {
-                  instr.word = token.str_view;
-                  push_instr(IIK_ProcCall)
-               } goto found_symbol;
-            }
+               instr.kind = IIK_PushType;
+               instr.uint_value = (u64) type->type_id;
+               Vector_push(&ir->IrInstructions, &instr);
+            } else {
+               token.str_view.chars[token.str_view.length] = tmp;
+               switch (symbol->kind) {
+                  case SK_Proc: {
+                     instr.word = token.str_view;
+                     push_instr(IIK_ProcCall)
+                  } goto found_symbol;
+               }
 
-            panic("unreachable");
+               panic("unreachable");
+            }
          found_symbol:
          } break;
 
@@ -182,7 +191,6 @@ static Type* get_type_from_word(IR* ir, Token token) {
    return type;
 }
 
-// @Todo: defining a procedure as void --- void manually breaks the parameter counts in some weird way.
 static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, ParsingState* state, u32* begin_z) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
@@ -420,6 +428,7 @@ IR IR_from_file(cstr file, bool* failure, double* ir_time, double* lexer_time) {
    create_type(void_type.name, .kind = TK_Void, .type_id = void_type.id);
    create_type(int_type.name,  .kind = TK_Int,  .type_id = int_type.id,  .integer = { .is_signed = true,  .bits = BIT64 });
    create_type(uint_type.name, .kind = TK_Int,  .type_id = uint_type.id, .integer = { .is_signed = false, .bits = BIT64 });
+   create_type(type_type.name, .kind = TK_Int,  .type_id = type_type.id, .integer = { .is_signed = false, .bits = BIT64 });
    create_type(ptr_type.name,  .kind = TK_Ptr,  .type_id = ptr_type.id);
    create_type(void_proc_type.name, .kind = TK_Proc, .type_id = void_proc_type.id, .proc = {
       .parameter_types = Vector_new(sizeof(u32)),

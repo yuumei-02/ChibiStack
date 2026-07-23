@@ -15,6 +15,7 @@
 extern TypeInfo int_type;
 extern TypeInfo uint_type;
 extern TypeInfo ptr_type;
+extern TypeInfo type_type;
 extern u32 next_type_id;
 
 Lexer* get_lexer_from_lexer_id(Vector* Lexers, u16 lexer_i) {
@@ -61,6 +62,15 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
                .id = int_type.id,
                .offset = instr->z,
                .name = int_type.name
+            }));
+         } continue;
+
+         case IIK_PushType: {
+            Vector_push_create(&type_stack, ((TypeInfo) {
+               .lexer_i = instr->lexer,
+               .id = type_type.id,
+               .offset = instr->z,
+               .name = type_type.name
             }));
          } continue;
 
@@ -228,6 +238,7 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             type_stack.length -= type->proc.return_types.length;
          } continue;
 
+         // @Todo: Check if the arguments match the parameter types of the callee
          case IIK_ProcCall: {
             char tmp = StringView_tmp_nullify(instr->word);
             Symbol* proc_sym = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
@@ -251,7 +262,7 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             minimum_required_stack_size(1);
 
             TypeInfo a = *(TypeInfo*) Vector_pop(&type_stack);
-            if (a.id != int_type.id) {
+            if (a.id != int_type.id && a.id != type_type.id) {
                report_unexpected_type(a.name, int_type.name,
                   get_lexer_from_lexer_id(&ir->Lexers, a.lexer_i), a.offset);
                goto failure;
