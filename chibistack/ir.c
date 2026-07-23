@@ -182,6 +182,7 @@ static Type* get_type_from_word(IR* ir, Token token) {
    return type;
 }
 
+// @Todo: defining a procedure as void --- void manually breaks the parameter counts in some weird way.
 static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, ParsingState* state, u32* begin_z) {
    Token token = Lexer_next(lexer, state->lexer_time);
    if (token.type != TT_Word) {
@@ -227,9 +228,11 @@ static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, Pars
                .name = type->name
             };
 
-            switch (parsing_parameter_types) {
-               case true:  Vector_push(&parameter_types, &type_info); break;
-               case false: Vector_push(&return_types, &type_info);    break;
+            if (type->type_id != void_type.id) {
+               switch (parsing_parameter_types) {
+                  case true:  Vector_push(&parameter_types, &type_info); break;
+                  case false: Vector_push(&return_types, &type_info);    break;
+               }
             }
 
             String_append(&type_signature, ' ');
@@ -243,12 +246,6 @@ static String parse_procedure_parameters(IR* ir, Lexer* lexer, u16 lexer_i, Pars
 
          case TT_Begin: {
             *begin_z = token.z;
-         
-            if (return_types.length < 1) {
-               report_missing_return_type(lexer, token);
-               enter_panic(state);
-               goto failure;
-            }
 
             HashMap_put(Type)(&ir->type_table, type_signature.chars, (Type) {
                .kind = TK_Proc,
@@ -290,7 +287,7 @@ static void parse_procedure(IR* ir, Lexer* lexer, u32 lexer_i, ParsingState* sta
    }
 
    StringView name = token.str_view;
-   String signature = (String) {0};
+   String signature = String_from("void --- void");
 
    token = Lexer_next(lexer, state->lexer_time);
    switch (token.type) {

@@ -180,14 +180,37 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
       switch (instr->kind) {
          case IIK_ProcBegin: {
+            char tmp = StringView_tmp_nullify(instr->word);
+            Symbol* proc_sym = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            StringView_tmp_restore(instr->word, tmp);
+            Type* type = HashMap_get(Type)(&ir->type_table, proc_sym->proc.signature.chars);
+         
             outwrite(handle,
                "%.*s:\n"
                "   push rbp\n"
                "   mov rbp, rsp\n",
                (i32) instr->word.length, instr->word.chars);
+
+            foreach (type->proc.parameter_types, i) {
+               outwrite(handle, "   push [r12+%zu]\n", 8 * i);
+            }
+
+            stack_element_count += type->proc.parameter_types.length;
          } continue;
 
          case IIK_ProcEnd: {
+            char tmp = StringView_tmp_nullify(instr->word);
+            Symbol* proc_sym = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            StringView_tmp_restore(instr->word, tmp);
+            Type* type = HashMap_get(Type)(&ir->type_table, proc_sym->proc.signature.chars);
+
+            for (isize i = type->proc.return_types.length - 1; i >= 0; -- i) {
+               outwrite(handle, "   pop rax\n");
+               outwrite(handle, "   mov qword [r12+%ld], rax\n", 8 * ((type->proc.parameter_types.length - i) - 1));
+            }
+
+            stack_element_count -= type->proc.return_types.length;
+
             outwrite(handle,
                "   mov rsp, rbp\n"
                "   pop rbp\n"
@@ -197,6 +220,17 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
 
          // @Todo: Add support for passing arguments.
          case IIK_ProcCall: {
+            char tmp = StringView_tmp_nullify(instr->word);
+            Symbol* proc_sym = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            StringView_tmp_restore(instr->word, tmp);
+            Type* type = HashMap_get(Type)(&ir->type_table, proc_sym->proc.signature.chars);
+
+            outwrite(handle,"   mov r12, rsp\n");
+            if (type->proc.return_types.length > type->proc.parameter_types.length) {
+               outwrite(handle, "   sub rsp, %zu\n",
+                  8 * (type->proc.return_types.length - type->proc.parameter_types.length));
+            }
+
             if (stack_element_count > 0 && stack_element_count % 2 == 1) {
                outwrite(handle,
                   "   sub rsp, 8\n"
@@ -206,6 +240,14 @@ i32 nasm_from_ir(IR* ir, bool asm_dump, double* code_gen_time, double* linker_ti
             } else {
                outwrite(handle, "   call %.*s\n",
                   (i32) instr->word.length, instr->word.chars);
+            }
+
+            if (type->proc.return_types.length > type->proc.parameter_types.length) {
+               stack_element_count += type->proc.return_types.length - type->proc.parameter_types.length;
+            } else {
+               usize popped_params = type->proc.parameter_types.length - type->proc.return_types.length;
+               stack_element_count -= popped_params;
+               outwrite(handle, "   add rsp, %ld\n", 8 * popped_params);
             }
          } continue;
 

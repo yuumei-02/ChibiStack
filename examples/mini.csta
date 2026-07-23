@@ -16,6 +16,7 @@ end
 
 proc main begin
    "Zhyivannye miratte!\n" 1 1 syscall3 drop
-   5 5 2 addmul puti
+   2 3 5 addmul puti
+   "\n" 1 1 syscall3 drop
 end
 

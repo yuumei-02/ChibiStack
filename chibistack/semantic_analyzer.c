@@ -202,10 +202,6 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             mcu_assert(symbol != nullptr, "The compilation should've already terminated in this case");
             mcu_assert(symbol->kind == SK_Proc, "Unreachable");
 
-            // A zeroed signatures means it is a void proc
-            if (symbol->proc.signature.capacity < 1)
-               continue;
-
             Type* type = HashMap_get(Type)(&ir->type_table, symbol->proc.signature.chars);
             mcu_assert(type != nullptr, "Unreachable");
             mcu_assert(type->kind == TK_Proc, "Unreachable");
@@ -221,7 +217,6 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             Symbol* symbol = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
             sv_tmp_restore(instr->word, tmp);
 
-            if (symbol->proc.signature.capacity < 1) continue;
             Type* type = HashMap_get(Type)(&ir->type_table, symbol->proc.signature.chars);
 
             if (type_stack.length != starting_stack_size + type->proc.return_types.length) {
@@ -233,8 +228,24 @@ bool validate_program(IR* ir, double* semantic_analysis_time) {
             type_stack.length -= type->proc.return_types.length;
          } continue;
 
-         // @Todo: Check if the procedure exist in scope.
-         case IIK_ProcCall: continue;
+         case IIK_ProcCall: {
+            char tmp = StringView_tmp_nullify(instr->word);
+            Symbol* proc_sym = HashMap_get(Symbol)(&ir->symbol_table, instr->word.chars);
+            StringView_tmp_restore(instr->word, tmp);
+            Type* type = HashMap_get(Type)(&ir->type_table, proc_sym->proc.signature.chars);
+
+            foreach (type->proc.parameter_types, i) {
+               Vector_pop(&type_stack);
+            }
+
+            foreach (type->proc.return_types, i) {
+               TypeInfo return_type = *(TypeInfo*) Vector_get(&type->proc.return_types, i);
+               return_type.lexer_i = instr->lexer;
+               return_type.offset = instr->lexer;
+            
+               Vector_push(&type_stack, &return_type);
+            }
+         } continue;
 
          case IIK_Puti: {
             minimum_required_stack_size(1);
