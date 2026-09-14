@@ -1,4 +1,4 @@
-// Copyright (c) 2026 yuumei-02. All Rights Reserved.
+// Copyright (c) 2026 yuumei-02.
 // See the LICENSE file for more information.
 
 #define _POSIX_C_SOURCE 200809L

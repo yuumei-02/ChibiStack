@@ -1,4 +1,4 @@
-;; Copyright (c) 2026 Yuumei-02. All Rights Reserved.
+;; Copyright (c) 2026 Yuumei-02.
 ;; See the LICENSE file for more information.
 
 (defvar chibistack-mode-keywords 
